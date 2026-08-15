@@ -78,7 +78,7 @@ export default function Classement({ data, me }) {
 
           {ligueId && (
             <Card>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-1">
                 <h3 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 18, fontWeight: 600 }}>
                   Classement — {data.ligues.find((l) => l.id === ligueId)?.nom}
                 </h3>
@@ -93,6 +93,9 @@ export default function Classement({ data, me }) {
                   Quitter cette ligue
                 </button>
               </div>
+              <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
+                {ranking.length} inscrit{ranking.length > 1 ? "s" : ""} — tous les membres apparaissent ci-dessous, même à 0 point tant qu'aucun résultat n'est encore tombé.
+              </p>
               {ranking.length === 0 ? (
                 <p className="text-sm" style={{ color: COLORS.paperDim }}>Aucun membre pour l'instant.</p>
               ) : (

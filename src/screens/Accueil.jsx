@@ -96,11 +96,22 @@ export default function Accueil({ data, me, setTab }) {
         {mesLigues.length === 0 ? (
           <p className="text-sm" style={{ color: COLORS.paperDim }}>Vous n'appartenez à aucune ligue pour l'instant.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {mesLigues.map((l) => (
-              <Badge key={l.id} tone="verified">{l.nom}</Badge>
-            ))}
+          <div className="flex flex-col gap-2">
+            {mesLigues.map((l) => {
+              const nbMembres = data.adhesions.filter((a) => a.ligueId === l.id).length;
+              return (
+                <div key={l.id} className="flex items-center justify-between">
+                  <Badge tone="verified">{l.nom}</Badge>
+                  <span className="text-xs" style={{ color: COLORS.paperDim }}>{nbMembres} inscrit{nbMembres > 1 ? "s" : ""}</span>
+                </div>
+              );
+            })}
           </div>
+        )}
+        {mesLigues.length > 0 && (
+          <p className="text-xs mt-3" style={{ color: COLORS.paperDim }}>
+            Retrouvez la liste complète des inscrits et leur score dans l'onglet Classement.
+          </p>
         )}
       </Card>
 

@@ -1,7 +1,20 @@
 import React, { useState } from "react";
 import { Card, Button, Gauge, COLORS, inputStyle, CandidatAvatar } from "../components/ui";
-import { fmtDateTime } from "../lib/format";
+import { fmtDateTime, fmtDeadline } from "../lib/format";
 import { savePronostic } from "../lib/db";
+
+function resumeReponse(q, r) {
+  if (r === undefined || r === null || r === "") return null;
+  return Array.isArray(r)
+    ? r.length
+      ? r.join(", ")
+      : null
+    : q.type === "numerique" && typeof r === "number"
+    ? r + (q.numeriqueEntier ? "" : " %")
+    : q.type === "candidat_score" && r && typeof r === "object"
+    ? `${r.candidat} (${r.score} %)`
+    : r;
+}
 
 export default function Pronostiquer({ data, me }) {
   const session = data.sessions.find((s) => s.statut === "ouverte");
@@ -12,6 +25,10 @@ export default function Pronostiquer({ data, me }) {
   const save = async (questionId, reponse, probabilite) => {
     await savePronostic(me.id, questionId, reponse, probabilite);
   };
+
+  const mesReponses = questions
+    .map((q) => ({ q, p: data.pronostics.find((x) => x.participantId === me.id && x.questionId === q.id) }))
+    .filter(({ q, p }) => q.type !== "texte" && resumeReponse(q, p?.reponse) !== null);
 
   return (
     <div className="flex flex-col gap-3">
@@ -25,6 +42,23 @@ export default function Pronostiquer({ data, me }) {
         ) : (
           <QuestionCard key={q.id} q={q} index={i + 1} data={data} me={me} onSave={save} />
         )
+      )}
+
+      {mesReponses.length > 0 && (
+        <Card>
+          <p className="text-xs mb-1" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Récapitulatif de vos réponses</p>
+          <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
+            Modifiable jusqu'à la clôture, le {fmtDeadline(session.cloture)}.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {mesReponses.map(({ q, p }) => (
+              <div key={q.id} className="flex items-start justify-between gap-2 text-sm" style={{ borderTop: `1px solid ${COLORS.ink700}`, paddingTop: 6 }}>
+                <span className="flex-1" style={{ color: COLORS.paperDim }}>{q.libelle}</span>
+                <span className="shrink-0 text-right font-medium" style={{ color: COLORS.paper }}>{resumeReponse(q, p.reponse)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
     </div>
   );
@@ -49,15 +83,25 @@ function QuestionCard({ q, index, data, me, onSave }) {
     if (isMulti) {
       setReponse((r) => (r.includes(val) ? r.filter((v) => v !== val) : [...r, val]));
     } else {
-      setReponse(val);
-      onSave(q.id, val, prob);
+      setReponse(val); // ne sauvegarde pas tout de suite : il faudra cliquer sur "Valider ma réponse"
     }
   };
 
-  const validateMulti = () => onSave(q.id, reponse, prob);
+  const valider = () => {
+    if (q.type === "numerique") {
+      if (reponse === "" || isNaN(Number(reponse))) return;
+      onSave(q.id, Number(reponse), prob);
+    } else {
+      onSave(q.id, reponse, prob);
+    }
+  };
 
-  const hasAnswer = isMulti ? reponse.length > 0 : !!reponse;
-  const multiDirty = isMulti && JSON.stringify([...reponse].sort()) !== JSON.stringify([...(existing?.reponse ?? [])].sort());
+  const dirty = isMulti
+    ? JSON.stringify([...reponse].sort()) !== JSON.stringify([...(existing?.reponse ?? [])].sort())
+    : q.type === "numerique"
+    ? String(reponse) !== String(existing?.reponse ?? "")
+    : reponse !== (existing?.reponse ?? "");
+  const peutValider = isMulti ? reponse.length > 0 : q.type === "numerique" ? reponse !== "" && !isNaN(Number(reponse)) : q.type === "texte" || q.type === "texte_pari" ? true : !!reponse;
 
   return (
     <Card>
@@ -84,7 +128,6 @@ function QuestionCard({ q, index, data, me, onSave }) {
           style={{ ...inputStyle, minHeight: 70 }}
           value={reponse}
           onChange={(e) => setReponse(e.target.value)}
-          onBlur={() => onSave(q.id, reponse, null)}
           placeholder="Votre réponse (facultatif, non classant)"
         />
       ) : q.type === "texte_pari" ? (
@@ -94,7 +137,6 @@ function QuestionCard({ q, index, data, me, onSave }) {
             style={inputStyle}
             value={reponse}
             onChange={(e) => setReponse(e.target.value)}
-            onBlur={() => onSave(q.id, reponse, null)}
             placeholder="Nom du candidat (laissez vide si aucun pari)"
           />
           <p className="text-xs mt-1.5" style={{ color: COLORS.paperDim }}>
@@ -111,7 +153,6 @@ function QuestionCard({ q, index, data, me, onSave }) {
             style={{ ...inputStyle, width: 110 }}
             value={reponse}
             onChange={(e) => setReponse(e.target.value)}
-            onBlur={() => reponse !== "" && onSave(q.id, Number(reponse), null)}
             placeholder={q.numeriqueEntier ? "Ex. 6" : "Ex. 24.5"}
           />
           {!q.numeriqueEntier && <span className="text-sm" style={{ color: COLORS.paperDim }}>%</span>}
@@ -155,24 +196,16 @@ function QuestionCard({ q, index, data, me, onSave }) {
         </div>
       )}
 
-      {isMulti && (
-        <Button onClick={validateMulti} disabled={!multiDirty && !!existing} className="mb-2">
-          {existing && !multiDirty ? "Sélection enregistrée" : `Valider ma sélection (${reponse.length})`}
-        </Button>
-      )}
+      <Button onClick={valider} disabled={!peutValider || (!!existing && !dirty)} className="mb-2">
+        {existing && !dirty ? "✓ Réponse enregistrée" : isMulti ? `Confirmer et valider (${reponse.length})` : "Confirmer et valider"}
+      </Button>
 
       {q.avecProbabilite && q.type !== "texte" && q.type !== "choix_multiple" && (
-        <Gauge
-          value={prob}
-          onChange={(v) => {
-            setProb(v);
-            if (hasAnswer && (!isMulti || !multiDirty)) onSave(q.id, reponse, v);
-          }}
-        />
+        <Gauge value={prob} onChange={(v) => setProb(v)} />
       )}
 
-      {existing && !multiDirty && <div className="mt-2 text-xs" style={{ color: COLORS.verified }}>✓ enregistré le {fmtDateTime(existing.date)}</div>}
-      {multiDirty && <div className="mt-2 text-xs" style={{ color: COLORS.gold }}>Sélection modifiée, non enregistrée — cliquez sur "Valider ma sélection".</div>}
+      {existing && !dirty && <div className="mt-2 text-xs" style={{ color: COLORS.verified }}>✓ enregistré le {fmtDateTime(existing.date)}</div>}
+      {dirty && existing && <div className="mt-2 text-xs" style={{ color: COLORS.gold }}>Réponse modifiée, non enregistrée — cliquez sur "Confirmer et valider".</div>}
     </Card>
   );
 }
@@ -245,7 +278,7 @@ function CandidatScoreCard({ q, index, data, me, onSave }) {
       </div>
 
       <Button onClick={validate} disabled={!canValidate || (!dirty && !!existing)}>
-        {existing && !dirty ? "Réponse enregistrée" : "Valider ma réponse"}
+        {existing && !dirty ? "✓ Réponse enregistrée" : "Confirmer et valider"}
       </Button>
 
       {existing && !dirty && <div className="mt-2 text-xs" style={{ color: COLORS.verified }}>✓ enregistré le {fmtDateTime(existing.date)}</div>}
