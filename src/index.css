@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b93a3;
+  opacity: 0.9;
+  font-style: italic;
+}
