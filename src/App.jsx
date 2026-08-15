@@ -9,6 +9,7 @@ import Calendrier from "./screens/Calendrier";
 import Pronostiquer from "./screens/Pronostiquer";
 import Historique from "./screens/Historique";
 import ClassementGroupe from "./screens/ClassementGroupe";
+import RequireLigueGate from "./screens/RequireLigueGate";
 import Admin from "./screens/Admin";
 
 export default function App() {
@@ -85,6 +86,12 @@ export default function App() {
   if (!me) return <Loading text="Création de votre profil…" />;
 
   const isAdmin = !!me.isAdmin;
+
+  // Impossible de jouer sans appartenir à au moins une ligue (sauf l'admin, qui doit
+  // pouvoir configurer sessions/candidats/ligues avant que qui que ce soit ne rejoigne).
+  const appartientAUneLigue = data.adhesions.some((a) => a.participantId === me.id);
+  if (!isAdmin && !appartientAUneLigue) return <RequireLigueGate me={me} />;
+
   const tabs = [
     ["accueil", "Accueil"],
     ["calendrier", "Calendrier"],

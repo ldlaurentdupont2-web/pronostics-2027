@@ -110,17 +110,23 @@ function AdminLigues({ data }) {
       <p className="text-xs -mb-1" style={{ color: COLORS.paperDim }}>
         Chaque ligue a un code d'invitation. Seuls ceux qui le connaissent peuvent la rejoindre — communique-le uniquement au bon groupe.
       </p>
-      {data.ligues.map((l) => (
-        <Card key={l.id}>
-          <div className="flex items-center justify-between mb-1">
-            <span style={{ color: COLORS.paper }} className="font-medium">{l.nom}</span>
-            <span className="text-xs" style={{ color: COLORS.paperDim }}>{ligueMembers(l.id, data).length} membre(s)</span>
-          </div>
-          <p className="text-xs" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
-            Code : <span style={{ color: COLORS.gold, fontWeight: 600 }}>{l.code}</span>
-          </p>
-        </Card>
-      ))}
+      {data.ligues.map((l) => {
+        const membres = ligueMembers(l.id, data);
+        return (
+          <Card key={l.id}>
+            <div className="flex items-center justify-between mb-1">
+              <span style={{ color: COLORS.paper }} className="font-medium">{l.nom}</span>
+              <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} membre(s)</span>
+            </div>
+            <p className="text-xs mb-1.5" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
+              Code : <span style={{ color: COLORS.gold, fontWeight: 600 }}>{l.code}</span>
+            </p>
+            <p className="text-xs" style={{ color: COLORS.paperDim }}>
+              {membres.length === 0 ? "Aucun membre pour l'instant." : membres.map((m) => m.nom).join(", ")}
+            </p>
+          </Card>
+        );
+      })}
     </div>
   );
 }
