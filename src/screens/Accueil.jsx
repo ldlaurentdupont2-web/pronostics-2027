@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Card, Badge, Button, Field, inputStyle, COLORS } from "../components/ui";
 import { fmtDateTime } from "../lib/format";
+import { ligueMembers } from "../lib/scoring";
 import { joinLigueByCode, addLigue } from "../lib/db";
 
 export default function Accueil({ data, me, setTab }) {
@@ -96,13 +97,18 @@ export default function Accueil({ data, me, setTab }) {
         {mesLigues.length === 0 ? (
           <p className="text-sm" style={{ color: COLORS.paperDim }}>Vous n'appartenez à aucune ligue pour l'instant.</p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {mesLigues.map((l) => {
-              const nbMembres = data.adhesions.filter((a) => a.ligueId === l.id).length;
+              const membres = ligueMembers(l.id, data);
               return (
-                <div key={l.id} className="flex items-center justify-between">
-                  <Badge tone="verified">{l.nom}</Badge>
-                  <span className="text-xs" style={{ color: COLORS.paperDim }}>{nbMembres} inscrit{nbMembres > 1 ? "s" : ""}</span>
+                <div key={l.id}>
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge tone="verified">{l.nom}</Badge>
+                    <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} inscrit{membres.length > 1 ? "s" : ""}</span>
+                  </div>
+                  <p className="text-xs" style={{ color: COLORS.paperDim }}>
+                    {membres.length === 0 ? "Aucun membre pour l'instant." : membres.map((m) => m.nom).join(", ")}
+                  </p>
                 </div>
               );
             })}
@@ -110,7 +116,7 @@ export default function Accueil({ data, me, setTab }) {
         )}
         {mesLigues.length > 0 && (
           <p className="text-xs mt-3" style={{ color: COLORS.paperDim }}>
-            Retrouvez la liste complète des inscrits et leur score dans l'onglet Classement.
+            Retrouvez le score de chacun dans l'onglet Classement.
           </p>
         )}
       </Card>
