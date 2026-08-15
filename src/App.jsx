@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "./lib/supabaseClient";
-import { fetchAllData, subscribeToChanges, signUp, signIn, signOut, ensureParticipant } from "./lib/db";
+import { fetchAllData, subscribeToChanges, signUp, signIn, signOut, ensureParticipant, resetPasswordForEmail, updatePassword } from "./lib/db";
 import { COLORS, FONT_LINK, Card, Button, Field, inputStyle } from "./components/ui";
 import { fmtDeadline } from "./lib/format";
 import Regles from "./screens/Regles";
@@ -24,6 +24,7 @@ export default function App() {
   const [data, setDataState] = useState(null);
   const [tab, setTab] = useState("accueil");
   const [loadError, setLoadError] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const reload = useCallback(async () => {
     try {
@@ -37,7 +38,11 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      // Déclenché quand on arrive sur le site via le lien "mot de passe oublié" reçu par email.
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -71,6 +76,7 @@ export default function App() {
   }, [session, data, reload]);
 
   if (session === undefined) return <Loading />;
+  if (recoveryMode) return <ResetPasswordScreen onDone={() => setRecoveryMode(false)} />;
   if (!session) return <AuthScreen />;
   if (loadError) return <Loading error={loadError} />;
   if (!data) return <Loading />;
@@ -159,13 +165,20 @@ function Loading({ text = "chargement…", error }) {
 }
 
 function AuthScreen() {
-  const [mode, setMode] = useState("signin");
+  const [mode, setMode] = useState("signin"); // "signin" | "signup" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const [nom, setNom] = useState("");
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const changeMode = (m) => {
+    setMode(m);
+    setErr("");
+    setInfo("");
+  };
 
   const submit = async () => {
     setErr("");
@@ -174,11 +187,119 @@ function AuthScreen() {
     try {
       if (mode === "signup") {
         if (!nom.trim()) throw new Error("Entrez votre nom.");
+        if (password !== password2) throw new Error("Les deux mots de passe ne correspondent pas.");
         const res = await signUp(email.trim(), password, nom.trim());
         if (!res.session) setInfo("Compte créé. Vérifiez votre boîte mail pour confirmer votre adresse, puis connectez-vous.");
+      } else if (mode === "forgot") {
+        await resetPasswordForEmail(email.trim());
+        setInfo("Si un compte existe avec cette adresse, un email pour choisir un nouveau mot de passe vient d'être envoyé.");
       } else {
         await signIn(email.trim(), password);
       }
+    } catch (e) {
+      setErr(e.message || "Erreur");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const peutValider = mode === "forgot" ? !!email : mode === "signup" ? !!email && !!password && !!password2 && !!nom.trim() : !!email && !!password;
+
+  return (
+    <div style={{ background: COLORS.ink900, minHeight: "100vh", fontFamily: "'Inter', sans-serif" }} className="flex flex-col justify-center px-6">
+      <div className="text-center mb-8">
+        <div className="text-xs tracking-widest uppercase mb-2" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
+          Présidentielle 2027
+        </div>
+        <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 30, fontWeight: 700 }}>
+          Registre des<br />pronostiqueurs
+        </h1>
+      </div>
+      <Card>
+        {mode !== "forgot" && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => changeMode("signin")}
+              className="text-xs px-3 py-1.5 rounded-full"
+              style={{ background: mode === "signin" ? COLORS.gold : "transparent", color: mode === "signin" ? COLORS.ink800 : COLORS.paperDim, border: `1px solid ${COLORS.ink600}` }}
+            >
+              Se connecter
+            </button>
+            <button
+              onClick={() => changeMode("signup")}
+              className="text-xs px-3 py-1.5 rounded-full"
+              style={{ background: mode === "signup" ? COLORS.gold : "transparent", color: mode === "signup" ? COLORS.ink800 : COLORS.paperDim, border: `1px solid ${COLORS.ink600}` }}
+            >
+              Créer un compte
+            </button>
+          </div>
+        )}
+        {mode === "forgot" && (
+          <p className="text-sm mb-4" style={{ color: COLORS.paper }}>Mot de passe oublié</p>
+        )}
+        {mode === "signup" && (
+          <Field label="Votre nom (affiché aux autres joueurs)">
+            <input style={inputStyle} value={nom} onChange={(e) => setNom(e.target.value)} />
+          </Field>
+        )}
+        <Field label="Email">
+          <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+        {mode !== "forgot" && (
+          <Field label="Mot de passe">
+            <input type="password" style={inputStyle} value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+        )}
+        {mode === "signup" && (
+          <Field label="Confirmez le mot de passe">
+            <input type="password" style={inputStyle} value={password2} onChange={(e) => setPassword2(e.target.value)} />
+          </Field>
+        )}
+        {mode === "signin" && (
+          <button onClick={() => changeMode("forgot")} className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
+            Mot de passe oublié ?
+          </button>
+        )}
+        {err && <p className="text-xs mb-3" style={{ color: COLORS.danger }}>{err}</p>}
+        {info && <p className="text-xs mb-3" style={{ color: COLORS.verified }}>{info}</p>}
+        <Button onClick={submit} disabled={busy || !peutValider} className="w-full">
+          {busy ? "Un instant…" : mode === "signup" ? "Créer mon compte" : mode === "forgot" ? "Envoyer le lien" : "Se connecter"}
+        </Button>
+        {mode === "signup" && (
+          <p className="text-xs mt-3" style={{ color: COLORS.paperDim }}>
+            Le tout premier compte créé devient automatiquement administrateur.
+          </p>
+        )}
+        {mode === "forgot" && (
+          <button onClick={() => changeMode("signin")} className="text-xs mt-3" style={{ color: COLORS.paperDim }}>
+            ← Retour à la connexion
+          </button>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ResetPasswordScreen({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const valider = async () => {
+    setErr("");
+    if (password.length < 6) {
+      setErr("Le mot de passe doit faire au moins 6 caractères.");
+      return;
+    }
+    if (password !== password2) {
+      setErr("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await updatePassword(password);
+      onDone();
     } catch (e) {
       setErr(e.message || "Erreur");
     } finally {
@@ -192,48 +313,19 @@ function AuthScreen() {
         <div className="text-xs tracking-widest uppercase mb-2" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
           Présidentielle 2027
         </div>
-        <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 30, fontWeight: 700 }}>
-          Registre des<br />pronostiqueurs
-        </h1>
+        <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 26, fontWeight: 700 }}>Choisir un nouveau mot de passe</h1>
       </div>
       <Card>
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setMode("signin")}
-            className="text-xs px-3 py-1.5 rounded-full"
-            style={{ background: mode === "signin" ? COLORS.gold : "transparent", color: mode === "signin" ? COLORS.ink800 : COLORS.paperDim, border: `1px solid ${COLORS.ink600}` }}
-          >
-            Se connecter
-          </button>
-          <button
-            onClick={() => setMode("signup")}
-            className="text-xs px-3 py-1.5 rounded-full"
-            style={{ background: mode === "signup" ? COLORS.gold : "transparent", color: mode === "signup" ? COLORS.ink800 : COLORS.paperDim, border: `1px solid ${COLORS.ink600}` }}
-          >
-            Créer un compte
-          </button>
-        </div>
-        {mode === "signup" && (
-          <Field label="Votre nom (affiché aux autres joueurs)">
-            <input style={inputStyle} value={nom} onChange={(e) => setNom(e.target.value)} />
-          </Field>
-        )}
-        <Field label="Email">
-          <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label="Mot de passe">
+        <Field label="Nouveau mot de passe">
           <input type="password" style={inputStyle} value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
+        <Field label="Confirmez le nouveau mot de passe">
+          <input type="password" style={inputStyle} value={password2} onChange={(e) => setPassword2(e.target.value)} />
+        </Field>
         {err && <p className="text-xs mb-3" style={{ color: COLORS.danger }}>{err}</p>}
-        {info && <p className="text-xs mb-3" style={{ color: COLORS.verified }}>{info}</p>}
-        <Button onClick={submit} disabled={busy || !email || !password} className="w-full">
-          {busy ? "Un instant…" : mode === "signup" ? "Créer mon compte" : "Se connecter"}
+        <Button onClick={valider} disabled={busy || !password || !password2} className="w-full">
+          {busy ? "Un instant…" : "Valider le nouveau mot de passe"}
         </Button>
-        {mode === "signup" && (
-          <p className="text-xs mt-3" style={{ color: COLORS.paperDim }}>
-            Le tout premier compte créé devient automatiquement administrateur.
-          </p>
-        )}
       </Card>
     </div>
   );
