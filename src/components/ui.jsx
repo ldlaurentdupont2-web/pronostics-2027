@@ -184,8 +184,7 @@ const PIXEL_MASK = [
   "##################",
 ];
 
-export function PixelPortrait({ size = 160 }) {
-  const cols = PIXEL_MASK[0].length;
+export function PixelPortrait({ size = 160 }) {  const cols = PIXEL_MASK[0].length;
   const rows = PIXEL_MASK.length;
   return (
     <div className="flex flex-col items-center">
@@ -204,5 +203,21 @@ export function PixelPortrait({ size = 160 }) {
         <div style={{ flex: 1, background: COLORS.danger }} />
       </div>
     </div>
+  );
+}
+
+// Affiche /public/portrait.png si le fichier existe (dépose ta propre image à cet endroit
+// du projet), et retombe automatiquement sur la silhouette pixelisée générique sinon —
+// donc rien ne casse si le fichier est absent, renommé ou retiré plus tard.
+export function HeaderPortrait({ size = 140 }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <PixelPortrait size={size} />;
+  return (
+    <img
+      src="/portrait.png"
+      alt=""
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size, objectFit: "cover", display: "block", margin: "0 auto", borderRadius: 12, border: `2px solid ${COLORS.gold}` }}
+    />
   );
 }
