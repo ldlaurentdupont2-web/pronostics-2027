@@ -63,8 +63,14 @@ export default function Accueil({ data, me, setTab }) {
           </div>
         </div>
         <p className="text-sm mb-3" style={{ color: COLORS.paperDim }}>
-          Bienvenue sur le jeu de pronostics de la présidentielle 2027 ! Répondez régulièrement aux questions de la session en cours (voir le calendrier
-          pour le rythme exact selon la période), comparez vos scores entre amis dans une ou plusieurs ligues, et suivez le classement jusqu'au second tour.
+          Bienvenue dans l'arène !<br />
+          Répondez régulièrement aux questions de la session en cours (le calendrier vous dira à quel rythme selon la période), comparez
+          vos flairs respectifs et voyez qui aura vu juste jusqu'au second tour.
+        </p>
+        <p className="text-sm mb-3" style={{ color: COLORS.paperDim }}>
+          Petite précision utile : la liste des candidats potentiels que vous voyez ici n'est pas une sélection personnelle de
+          l'administrateur du jeu... Elle est importée telle quelle depuis un site spécialisé qui recense les candidatures pressenties,
+          sérieuses comme plus exotiques.
         </p>
         <Button variant="ghost" onClick={() => setTab("calendrier")}>Voir le calendrier</Button>
       </Card>
