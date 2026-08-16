@@ -17,8 +17,26 @@ export default function Regles() {
         </p>
         <ul className="text-sm flex flex-col gap-1.5" style={{ color: COLORS.paperDim }}>
           <li>• Sans session ouverte, l'onglet <span style={{ color: COLORS.gold }}>Pronostiquer</span> reste vide — c'est normal, pas un bug.</li>
-          <li>• Le jeu avance par phases : au début on pronostique qui sera candidat, à la fin on pronostique le score du second tour.</li>
+          <li>• Le jeu avance par phases : au début on pronostique la structuration politique, à la fin on pronostique le score du second tour.</li>
           <li>• Le socle de questions (candidats par famille + pari libre) se répète à l'identique chaque session : vous pouvez la reconfirmer ou la changer à chaque fois.</li>
+          <li>• Chaque réponse doit être confirmée avec le bouton <span style={{ color: COLORS.gold }}>« Confirmer et valider »</span> — tant que ce n'est pas cliqué, rien n'est enregistré.</li>
+          <li>• Il faut appartenir à au moins une <span style={{ color: COLORS.gold }}>ligue</span> pour que vos pronostics comptent dans un classement (voir plus bas).</li>
+        </ul>
+      </Card>
+
+      <Card>
+        <h2 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 19, fontWeight: 600 }} className="mb-2">
+          Les ligues
+        </h2>
+        <p className="text-sm mb-2" style={{ color: COLORS.paperDim }}>
+          Une ligue regroupe un classement entre les personnes que vous invitez (votre famille, vos amis, votre bureau...). Il faut en
+          rejoindre au moins une pour participer — c'est ce qui permet à vos pronostics de compter quelque part.
+        </p>
+        <ul className="text-sm flex flex-col gap-1.5" style={{ color: COLORS.paperDim }}>
+          <li>• Pour rejoindre une ligue existante, demandez son <strong style={{ color: COLORS.paper }}>code d'invitation</strong> à la personne qui l'a créée, et entrez-le depuis l'Accueil.</li>
+          <li>• N'importe quel joueur peut aussi créer sa propre ligue — les questions restent communes à tout le monde, seul le classement change.</li>
+          <li>• Vos pronostics sont uniques et comptent automatiquement dans toutes les ligues auxquelles vous appartenez.</li>
+          <li>• Chaque ligue dispose d'un espace de commentaires, pour échanger entre membres.</li>
         </ul>
       </Card>
 
@@ -76,7 +94,11 @@ export default function Regles() {
                 <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>
                   Numérique
                 </td>
-                <td className="py-2 px-1">Seul le joueur le plus proche du résultat officiel gagne les points (ex-æquo possibles).</td>
+                <td className="py-2 px-1">
+                  Deux variantes possibles selon la question : soit seul le joueur le plus proche du résultat officiel gagne les points
+                  (ex-æquo possibles, typiquement pour un score en %), soit tout le monde qui tombe exactement juste gagne les points
+                  (typiquement pour un dénombrement entier). C'est précisé dans l'intitulé de la question.
+                </td>
               </tr>
               <tr style={{ borderBottom: `1px solid ${COLORS.ink700}` }}>
                 <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>
