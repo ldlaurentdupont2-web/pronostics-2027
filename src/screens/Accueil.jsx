@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Card, Badge, Button, Field, inputStyle, COLORS } from "../components/ui";
+import { Card, Badge, Button, Field, inputStyle, COLORS, HeaderPortrait } from "../components/ui";
 import { fmtDateTime } from "../lib/format";
 import { ligueMembers } from "../lib/scoring";
 import { joinLigueByCode, addLigue } from "../lib/db";
@@ -53,6 +53,15 @@ export default function Accueil({ data, me, setTab }) {
   return (
     <div className="flex flex-col gap-3">
       <Card>
+        <div className="flex items-center gap-3 mb-3">
+          <HeaderPortrait size={64} />
+          <div>
+            <div className="text-xs uppercase tracking-wide" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
+              Présidentielle 2027
+            </div>
+            <h2 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 20, fontWeight: 600 }}>Pronostics</h2>
+          </div>
+        </div>
         <p className="text-sm mb-3" style={{ color: COLORS.paperDim }}>
           Bienvenue sur le jeu de pronostics de la présidentielle 2027 ! Répondez régulièrement aux questions de la session en cours (voir le calendrier
           pour le rythme exact selon la période), comparez vos scores entre amis dans une ou plusieurs ligues, et suivez le classement jusqu'au second tour.
