@@ -54,7 +54,7 @@ export default function Accueil({ data, me, setTab }) {
     <div className="flex flex-col gap-3">
       <Card>
         <div className="flex items-center gap-3 mb-3">
-          <HeaderPortrait size={64} />
+          <HeaderPortrait size={100} />
           <div>
             <div className="text-xs uppercase tracking-wide" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
               Présidentielle 2027
