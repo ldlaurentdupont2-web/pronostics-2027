@@ -75,49 +75,6 @@ export default function Accueil({ data, me, setTab }) {
         <Button variant="ghost" onClick={() => setTab("calendrier")}>Voir le calendrier</Button>
       </Card>
 
-      <Card style={{ border: `2px solid ${COLORS.gold}` }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: COLORS.paper }}>📌 Rentrez le code de ligue qu'on vous a transmis</p>
-        <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>Indispensable pour participer : sans ligue, vos pronostics ne comptent dans aucun classement.</p>
-        <div className="flex gap-2">
-          <input
-            style={{ ...inputStyle, textTransform: "uppercase" }}
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") join();
-            }}
-            placeholder="Ex. A1B2C3"
-          />
-          <Button onClick={join} disabled={!code.trim() || busy}>{busy ? "…" : "Rejoindre"}</Button>
-        </div>
-        {err && <p className="text-xs mt-2" style={{ color: COLORS.danger }}>{err}</p>}
-      </Card>
-
-      <Card>
-        <p className="text-xs mb-1" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Ou créer ma propre ligue</p>
-        <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
-          N'importe quel joueur peut créer une ligue. Les questions restent communes à tout le monde — une ligue ne sert qu'à regrouper un classement entre les personnes que tu invites.
-        </p>
-        <div className="flex gap-2">
-          <input
-            style={inputStyle}
-            value={nouvNom}
-            onChange={(e) => setNouvNom(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") creerLigue();
-            }}
-            placeholder="Ex. Ligue du bureau"
-          />
-          <Button onClick={creerLigue} disabled={!nouvNom.trim() || creerBusy}>{creerBusy ? "…" : "Créer"}</Button>
-        </div>
-        {creerErr && <p className="text-xs mt-2" style={{ color: COLORS.danger }}>{creerErr}</p>}
-        {dernierCode && (
-          <p className="text-xs mt-2" style={{ color: COLORS.verified }}>
-            Ligue créée ! Code à partager : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: COLORS.gold, fontWeight: 600 }}>{dernierCode}</span>
-          </p>
-        )}
-      </Card>
-
       {ouvertes.length === 0 && (
         <Card>
           <p style={{ color: COLORS.paperDim }} className="text-sm">
@@ -175,6 +132,51 @@ export default function Accueil({ data, me, setTab }) {
         {mesLigues.length > 0 && (
           <p className="text-xs mt-3" style={{ color: COLORS.paperDim }}>
             Retrouvez le score de chacun dans l'onglet Classement.
+          </p>
+        )}
+      </Card>
+
+      <Card>
+        <p className="text-xs mb-1" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Rejoindre une autre ligue</p>
+        <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
+          On vous a transmis un code ? Vos pronostics déjà répondus y compteront automatiquement, sans rien avoir à refaire.
+        </p>
+        <div className="flex gap-2">
+          <input
+            style={{ ...inputStyle, textTransform: "uppercase" }}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") join();
+            }}
+            placeholder="Ex. A1B2C3"
+          />
+          <Button onClick={join} disabled={!code.trim() || busy}>{busy ? "…" : "Rejoindre"}</Button>
+        </div>
+        {err && <p className="text-xs mt-2" style={{ color: COLORS.danger }}>{err}</p>}
+      </Card>
+
+      <Card>
+        <p className="text-xs mb-1" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Créer une autre ligue</p>
+        <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
+          N'importe quel joueur peut créer une ligue. Les questions restent communes à tout le monde — une ligue ne sert qu'à regrouper un classement entre les personnes que tu invites.
+        </p>
+        <div className="flex gap-2">
+          <input
+            style={inputStyle}
+            value={nouvNom}
+            onChange={(e) => setNouvNom(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") creerLigue();
+            }}
+            placeholder="Ex. Ligue du bureau"
+          />
+          <Button onClick={creerLigue} disabled={!nouvNom.trim() || creerBusy}>{creerBusy ? "…" : "Créer"}</Button>
+        </div>
+        {creerErr && <p className="text-xs mt-2" style={{ color: COLORS.danger }}>{creerErr}</p>}
+        {dernierCode && (
+          <p className="text-xs mt-2" style={{ color: COLORS.verified }}>
+            Ligue créée ! Code à partager : <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: COLORS.gold, fontWeight: 600 }}>{dernierCode}</span>
           </p>
         )}
       </Card>
