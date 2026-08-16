@@ -94,11 +94,11 @@ export default function App() {
 
   const tabs = [
     ["accueil", "Accueil"],
+    ["pronostiquer", "Pronostiquer"],
+    ["classement", "Classement"],
     ["calendrier", "Calendrier"],
     ["regles", "Règles du jeu"],
-    ["pronostiquer", "Pronostiquer"],
     ["historique", "Historique"],
-    ["classement", "Classement"],
     ...(isAdmin ? [["admin", "Admin"]] : []),
   ];
 
