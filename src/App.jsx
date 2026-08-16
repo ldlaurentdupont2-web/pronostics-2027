@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "./lib/supabaseClient";
-import { fetchAllData, subscribeToChanges, signUp, signIn, signOut, ensureParticipant, resetPasswordForEmail, updatePassword } from "./lib/db";
+import { fetchAllData, subscribeToChanges, signUp, signIn, signOut, ensureParticipant, resetPasswordForEmail, updatePassword, updateNom } from "./lib/db";
 import { COLORS, FONT_LINK, Card, Button, Field, inputStyle, HeaderPortrait } from "./components/ui";
 import { fmtDeadline } from "./lib/format";
 import Regles from "./screens/Regles";
@@ -26,6 +26,10 @@ export default function App() {
   const [tab, setTab] = useState("accueil");
   const [loadError, setLoadError] = useState("");
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [editingNom, setEditingNom] = useState(false);
+  const [nomDraft, setNomDraft] = useState("");
+  const [nomErr, setNomErr] = useState("");
+  const [nomBusy, setNomBusy] = useState(false);
 
   const reload = useCallback(async () => {
     try {
@@ -114,9 +118,62 @@ export default function App() {
             </div>
             <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 22, fontWeight: 600 }}>Pronostics</h1>
           </div>
-          <button onClick={() => signOut()} className="text-xs" style={{ color: COLORS.paperDim }}>
-            {me.nom} · déconnexion
-          </button>
+          {!editingNom ? (
+            <div className="text-right">
+              <div className="text-xs" style={{ color: COLORS.paperDim }}>
+                {me.nom}{" "}
+                <button
+                  onClick={() => {
+                    setNomDraft(me.nom);
+                    setNomErr("");
+                    setEditingNom(true);
+                  }}
+                  style={{ color: COLORS.gold }}
+                >
+                  modifier
+                </button>
+              </div>
+              <button onClick={() => signOut()} className="text-xs" style={{ color: COLORS.paperDim }}>
+                déconnexion
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex gap-1">
+                <input
+                  style={{ ...inputStyle, width: 140, padding: "6px 8px", fontSize: 12 }}
+                  value={nomDraft}
+                  onChange={(e) => setNomDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && document.getElementById("valider-nom-btn")?.click()}
+                />
+                <button
+                  id="valider-nom-btn"
+                  onClick={async () => {
+                    if (!nomDraft.trim()) return;
+                    setNomErr("");
+                    setNomBusy(true);
+                    try {
+                      await updateNom(me.id, nomDraft.trim());
+                      setEditingNom(false);
+                    } catch (e) {
+                      setNomErr(e.message || "Erreur");
+                    } finally {
+                      setNomBusy(false);
+                    }
+                  }}
+                  disabled={nomBusy || !nomDraft.trim()}
+                  className="text-xs px-2 rounded"
+                  style={{ background: COLORS.gold, color: COLORS.ink800 }}
+                >
+                  ✓
+                </button>
+                <button onClick={() => setEditingNom(false)} className="text-xs px-1" style={{ color: COLORS.paperDim }}>
+                  ✕
+                </button>
+              </div>
+              {nomErr && <p className="text-xs" style={{ color: COLORS.danger, maxWidth: 200 }}>{nomErr}</p>}
+            </div>
+          )}
         </div>
       </header>
 

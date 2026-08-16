@@ -127,8 +127,7 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
-export async function ensureParticipant(user, nomSiNouveau) {
-  const { data: existing } = await supabase.from("participants").select("*").eq("user_id", user.id).maybeSingle();
+export async function ensureParticipant(user, nomSiNouveau) {  const { data: existing } = await supabase.from("participants").select("*").eq("user_id", user.id).maybeSingle();
   if (existing) return mapParticipant(existing);
   const { count } = await supabase.from("participants").select("*", { count: "exact", head: true });
   const nomBase = nomSiNouveau || user.email;
@@ -145,6 +144,16 @@ export async function ensureParticipant(user, nomSiNouveau) {
     if (error.code !== "23505") throw error; // autre erreur que "déjà pris" : on remonte tel quel
   }
   throw new Error("Impossible de créer le profil : ce prénom est déjà pris, réessayez avec un autre nom.");
+}
+
+/* ---------- profil ---------- */
+
+export async function updateNom(participantId, nouveauNom) {
+  const { error } = await supabase.from("participants").update({ nom: nouveauNom.trim() }).eq("id", participantId);
+  if (error) {
+    if (error.code === "23505") throw new Error("Ce prénom est déjà utilisé par un autre joueur — choisissez-en un autre.");
+    throw error;
+  }
 }
 
 /* ---------- ligues / adhésions ---------- */
