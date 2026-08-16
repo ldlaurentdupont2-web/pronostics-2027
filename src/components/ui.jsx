@@ -115,8 +115,7 @@ export const inputStyle = {
   outline: "none",
 };
 
-export function initialsOf(nom) {
-  const parts = (nom || "").trim().split(/\s+/).filter(Boolean);
+export function initialsOf(nom) {  const parts = (nom || "").trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] || "";
   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
   return (first + last).toUpperCase();
@@ -158,6 +157,52 @@ export function CandidatAvatar({ nom, photoUrl, size = 44 }) {
       style={{ width: size, height: size, background: bg + "26", border: `1.5px solid ${bg}`, color: bg, fontSize: size * 0.36 }}
     >
       {initialsOf(nom || "?")}
+    </div>
+  );
+}
+
+// Silhouette générique façon "portrait pixelisé" (hommage à l'esthétique rétro des
+// incrustations télé d'époque) — volontairement abstraite et sans trait de visage,
+// pour ne représenter personne en particulier.
+const PIXEL_MASK = [
+  ".......####.......",
+  ".....########.....",
+  "....##########....",
+  "...############...",
+  "...############...",
+  "...############...",
+  "...############...",
+  "...############...",
+  "....##########....",
+  "....##########....",
+  ".....########.....",
+  "......######......",
+  "......######......",
+  "..##############..",
+  ".################.",
+  "##################",
+  "##################",
+];
+
+export function PixelPortrait({ size = 160 }) {
+  const cols = PIXEL_MASK[0].length;
+  const rows = PIXEL_MASK.length;
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={size} height={(size / cols) * rows} viewBox={`0 0 ${cols} ${rows}`} style={{ display: "block" }}>
+        <rect x="0" y="0" width={cols} height={rows} fill={COLORS.ink800} />
+        {PIXEL_MASK.map((row, y) =>
+          [...row].map((c, x) => (c === "#" ? <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={COLORS.gold} /> : null))
+        )}
+        {Array.from({ length: rows }).map((_, i) => (
+          <rect key={"scan" + i} x="0" y={i} width={cols} height="0.18" fill={COLORS.ink900} opacity="0.12" />
+        ))}
+      </svg>
+      <div className="flex" style={{ width: size, height: 4, marginTop: 6, borderRadius: 2, overflow: "hidden" }}>
+        <div style={{ flex: 1, background: "#1E3A8A" }} />
+        <div style={{ flex: 1, background: COLORS.ink800 }} />
+        <div style={{ flex: 1, background: COLORS.danger }} />
+      </div>
     </div>
   );
 }

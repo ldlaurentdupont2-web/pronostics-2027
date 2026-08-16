@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "./lib/supabaseClient";
 import { fetchAllData, subscribeToChanges, signUp, signIn, signOut, ensureParticipant, resetPasswordForEmail, updatePassword } from "./lib/db";
-import { COLORS, FONT_LINK, Card, Button, Field, inputStyle } from "./components/ui";
+import { COLORS, FONT_LINK, Card, Button, Field, inputStyle, PixelPortrait } from "./components/ui";
 import { fmtDeadline } from "./lib/format";
 import Regles from "./screens/Regles";
 import Accueil from "./screens/Accueil";
@@ -215,11 +215,14 @@ function AuthScreen() {
   return (
     <div style={{ background: COLORS.ink900, minHeight: "100vh", fontFamily: "'Inter', sans-serif" }} className="flex flex-col justify-center px-6">
       <div className="text-center mb-8">
+        <div className="mb-4">
+          <PixelPortrait size={140} />
+        </div>
         <div className="text-xs tracking-widest uppercase mb-2" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
           Présidentielle 2027
         </div>
-        <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 30, fontWeight: 700 }}>
-          Registre des<br />pronostiqueurs
+        <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 28, fontWeight: 700 }}>
+          Pronostics
         </h1>
       </div>
       <Card>
