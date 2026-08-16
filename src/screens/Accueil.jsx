@@ -121,8 +121,11 @@ export default function Accueil({ data, me, setTab }) {
                     <Badge tone="verified">{l.nom}</Badge>
                     <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} inscrit{membres.length > 1 ? "s" : ""}</span>
                   </div>
-                  <p className="text-xs" style={{ color: COLORS.paperDim }}>
+                  <p className="text-xs mb-0.5" style={{ color: COLORS.paperDim }}>
                     {membres.length === 0 ? "Aucun membre pour l'instant." : membres.map((m) => m.nom).join(", ")}
+                  </p>
+                  <p className="text-xs" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
+                    Code d'invitation : <span style={{ color: COLORS.gold, fontWeight: 600 }}>{l.code}</span>
                   </p>
                 </div>
               );
