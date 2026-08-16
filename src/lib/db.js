@@ -156,6 +156,14 @@ export async function updateNom(participantId, nouveauNom) {
   }
 }
 
+// Réservé à l'admin : liste tous les participants avec leur email (récupéré via une
+// fonction sécurisée côté base, l'email n'étant jamais exposé aux autres joueurs).
+export async function fetchParticipantsWithEmail() {
+  const { data, error } = await supabase.rpc("admin_liste_participants");
+  if (error) throw error;
+  return data.map((r) => ({ participantId: r.participant_id, nom: r.nom, email: r.email }));
+}
+
 /* ---------- ligues / adhésions ---------- */
 
 // Ouvert à tout participant connecté (pas réservé à l'admin) : chacun peut créer sa

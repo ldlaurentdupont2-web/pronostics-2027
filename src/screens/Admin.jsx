@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, Button, Badge, Field, inputStyle, COLORS, CandidatAvatar } from "../components/ui";
 import { fmtDateTime } from "../lib/format";
 import { ligueMembers } from "../lib/scoring";
@@ -23,6 +23,7 @@ import {
   addEcheance,
   updateEcheance,
   deleteEcheance,
+  fetchParticipantsWithEmail,
 } from "../lib/db";
 
 export default function Admin({ data }) {
@@ -31,6 +32,7 @@ export default function Admin({ data }) {
     ["sessions", "Sessions"],
     ["candidats", "Candidats"],
     ["ligues", "Ligues"],
+    ["participants", "Participants"],
     ["resultats", "Résultats"],
     ["calendrier", "Calendrier des points"],
   ];
@@ -55,6 +57,7 @@ export default function Admin({ data }) {
       {section === "sessions" && <AdminSessions data={data} />}
       {section === "candidats" && <AdminCandidats data={data} />}
       {section === "ligues" && <AdminLigues data={data} />}
+      {section === "participants" && <AdminParticipants data={data} />}
       {section === "resultats" && <AdminResultats data={data} />}
       {section === "calendrier" && <AdminCalendrier data={data} />}
     </div>
@@ -915,6 +918,73 @@ function AdminCalendrier({ data }) {
             </div>
           </Card>
         ))
+      )}
+    </div>
+  );
+}
+
+/* ---------- Participants (synthèse par ligue, avec email) ---------- */
+
+function AdminParticipants({ data }) {
+  const [emails, setEmails] = useState(null); // Map participantId -> email
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    fetchParticipantsWithEmail()
+      .then((rows) => {
+        const map = {};
+        rows.forEach((r) => (map[r.participantId] = r.email));
+        setEmails(map);
+      })
+      .catch((e) => setErr(e.message || "Erreur"));
+  }, []);
+
+  if (err) return <Card><p className="text-sm" style={{ color: COLORS.danger }}>{err}</p></Card>;
+  if (!emails) return <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Chargement…</p></Card>;
+
+  const sansLigue = data.participants.filter((p) => !data.adhesions.some((a) => a.participantId === p.id));
+
+  return (
+    <div className="flex flex-col gap-3">
+      {data.ligues.map((l) => {
+        const membres = ligueMembers(l.id, data);
+        return (
+          <Card key={l.id}>
+            <div className="flex items-center justify-between mb-2">
+              <span style={{ color: COLORS.paper }} className="font-medium">{l.nom}</span>
+              <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} membre(s)</span>
+            </div>
+            {membres.length === 0 ? (
+              <p className="text-xs" style={{ color: COLORS.paperDim }}>Aucun membre pour l'instant.</p>
+            ) : (
+              <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                <tbody>
+                  {membres.map((m) => (
+                    <tr key={m.id} style={{ borderTop: `1px solid ${COLORS.ink700}` }}>
+                      <td className="py-1.5 pr-2" style={{ color: COLORS.paper }}>{m.nom}</td>
+                      <td className="py-1.5 text-right" style={{ color: COLORS.paperDim }}>{emails[m.id] || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        );
+      })}
+      {sansLigue.length > 0 && (
+        <Card>
+          <p className="font-medium mb-2" style={{ color: COLORS.paper }}>Sans ligue</p>
+          <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+            <tbody>
+              {sansLigue.map((p) => (
+                <tr key={p.id} style={{ borderTop: `1px solid ${COLORS.ink700}` }}>
+                  <td className="py-1.5 pr-2" style={{ color: COLORS.paper }}>{p.nom}</td>
+                  <td className="py-1.5 text-right" style={{ color: COLORS.paperDim }}>{emails[p.id] || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   );
