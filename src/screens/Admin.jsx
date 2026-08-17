@@ -30,6 +30,7 @@ export default function Admin({ data }) {
   const [section, setSection] = useState("sessions");
   const sections = [
     ["sessions", "Sessions"],
+    ["suivi", "Suivi des réponses"],
     ["candidats", "Candidats"],
     ["ligues", "Ligues"],
     ["participants", "Participants"],
@@ -55,6 +56,7 @@ export default function Admin({ data }) {
         ))}
       </div>
       {section === "sessions" && <AdminSessions data={data} />}
+      {section === "suivi" && <AdminSuivi data={data} />}
       {section === "candidats" && <AdminCandidats data={data} />}
       {section === "ligues" && <AdminLigues data={data} />}
       {section === "participants" && <AdminParticipants data={data} />}
@@ -985,6 +987,82 @@ function AdminParticipants({ data }) {
             </tbody>
           </table>
         </Card>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Suivi des réponses (admin uniquement, sessions ouvertes incluses) ---------- */
+
+function resumeReponseAdmin(q, r) {
+  if (r === undefined || r === null || r === "") return "—";
+  return Array.isArray(r)
+    ? r.length
+      ? r.join(", ")
+      : "—"
+    : q.type === "numerique" && typeof r === "number"
+    ? r + (q.numeriqueEntier ? "" : " %")
+    : q.type === "candidat_score" && r && typeof r === "object"
+    ? `${r.candidat} (${r.score} %)`
+    : r;
+}
+
+function AdminSuivi({ data }) {
+  const sessionsTriees = [...data.sessions].sort((a, b) => new Date(b.ouverture) - new Date(a.ouverture));
+  const [sessionId, setSessionId] = useState(sessionsTriees.find((s) => s.statut === "ouverte")?.id || sessionsTriees[0]?.id || "");
+  const [ouvert, setOuvert] = useState({});
+
+  if (sessionsTriees.length === 0) return <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Aucune session créée pour l'instant.</p></Card>;
+
+  const questions = data.questions.filter((q) => q.sessionId === sessionId && q.type !== "texte").sort((a, b) => a.ordre - b.ordre);
+  const participants = [...data.participants].sort((a, b) => a.nom.localeCompare(b.nom));
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Card>
+        <Field label="Session à suivre">
+          <select style={inputStyle} value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+            {sessionsTriees.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.titre} {s.statut === "ouverte" ? "(ouverte)" : s.statut === "close" ? "(close)" : "(planifiée)"}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Card>
+
+      {questions.length === 0 ? (
+        <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Cette session n'a pas encore de questions.</p></Card>
+      ) : (
+        participants.map((p) => {
+          const rep = data.pronostics.filter((x) => x.participantId === p.id && questions.some((q) => q.id === x.questionId));
+          const estOuvert = !!ouvert[p.id];
+          return (
+            <Card key={p.id}>
+              <button onClick={() => setOuvert((o) => ({ ...o, [p.id]: !o[p.id] }))} className="w-full text-left flex items-center justify-between">
+                <span style={{ color: COLORS.paper }} className="font-medium">{p.nom}</span>
+                <Badge tone={rep.length === questions.length ? "verified" : rep.length === 0 ? "danger" : "gold"}>
+                  {rep.length} / {questions.length}
+                </Badge>
+              </button>
+              {estOuvert && (
+                <div className="mt-3 pt-3 flex flex-col gap-1.5" style={{ borderTop: `1px solid ${COLORS.ink700}` }}>
+                  {questions.map((q) => {
+                    const pr = data.pronostics.find((x) => x.participantId === p.id && x.questionId === q.id);
+                    return (
+                      <div key={q.id} className="flex items-start justify-between gap-2 text-xs">
+                        <span className="flex-1" style={{ color: COLORS.paperDim }}>{q.libelle}</span>
+                        <span className="shrink-0 text-right font-medium" style={{ color: pr ? COLORS.paper : COLORS.danger }}>
+                          {pr ? resumeReponseAdmin(q, pr.reponse) : "sans réponse"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          );
+        })
       )}
     </div>
   );
