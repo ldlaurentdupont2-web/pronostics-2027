@@ -3,6 +3,7 @@ import { Card, COLORS } from "../components/ui";
 import { reponsesEgales, normaliseNom, numericWinners, candidatScoreWinners, ligueMembers } from "../lib/scoring";
 
 function afficheReponse(q, r) {
+  if (r && typeof r === "object" && r.annulee) return "sans objet";
   return Array.isArray(r)
     ? r.length
       ? r.join(", ")

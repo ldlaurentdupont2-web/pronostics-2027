@@ -713,7 +713,13 @@ function AdminResultats({ data }) {
           <p className="text-xs mb-2" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Résultats déjà validés</p>
           {data.resultats.map((r) => {
             const q = data.questions.find((x) => x.id === r.questionId);
-            const affiche = Array.isArray(r.resultat) ? r.resultat.join(", ") : r.resultat && typeof r.resultat === "object" ? `${r.resultat.candidat} (${r.resultat.score} %)` : r.resultat;
+            const affiche = r.resultat && typeof r.resultat === "object" && r.resultat.annulee
+              ? "sans objet (0 pt pour tout le monde)"
+              : Array.isArray(r.resultat)
+              ? r.resultat.join(", ")
+              : r.resultat && typeof r.resultat === "object"
+              ? `${r.resultat.candidat} (${r.resultat.score} %)`
+              : r.resultat;
             return (
               <div key={r.id} className="text-sm py-1" style={{ color: COLORS.paper }}>
                 {q?.libelle} → <span style={{ color: COLORS.gold }}>{affiche}</span>
@@ -754,6 +760,12 @@ function ResultatCard({ q, data }) {
     );
   };
 
+  const BoutonSansObjet = () => (
+    <button onClick={() => setResultat(q.id, { annulee: true })} className="text-xs mt-2" style={{ color: COLORS.paperDim }}>
+      Cette question ne peut pas se résoudre (ex. aucun candidat de cette famille) → marquer sans objet, 0 pt pour tout le monde
+    </button>
+  );
+
   if (isTextePari) {
     const parsed = nomsAcceptes.split(",").map((s) => s.trim()).filter(Boolean);
     return (
@@ -764,6 +776,7 @@ function ResultatCard({ q, data }) {
         </p>
         <input type="text" style={inputStyle} value={nomsAcceptes} onChange={(e) => setNomsAcceptes(e.target.value)} placeholder="Ex. Michel Dupont" className="mb-3" />
         <Button onClick={() => setResultat(q.id, parsed)} disabled={parsed.length === 0}>Valider ce résultat officiel</Button>
+        <BoutonSansObjet />
       </Card>
     );
   }
@@ -792,6 +805,7 @@ function ResultatCard({ q, data }) {
           <span className="text-sm" style={{ color: COLORS.paperDim }}>%</span>
         </div>
         <Button onClick={() => setResultat(q.id, { candidat: candidatChoice, score: Number(numValue) })} disabled={!candidatChoice || numValue === ""}>Valider ce résultat officiel</Button>
+        <BoutonSansObjet />
       </Card>
     );
   }
@@ -812,6 +826,7 @@ function ResultatCard({ q, data }) {
           {!q.numeriqueEntier && <span className="text-sm" style={{ color: COLORS.paperDim }}>%</span>}
         </div>
         <Button onClick={() => setResultat(q.id, Number(numValue))} disabled={numValue === ""}>Valider ce résultat officiel</Button>
+        <BoutonSansObjet />
       </Card>
     );
   }
@@ -829,6 +844,7 @@ function ResultatCard({ q, data }) {
           Valider ce résultat ({selected.length} sélectionné{selected.length > 1 ? "s" : ""})
         </Button>
       )}
+      <BoutonSansObjet />
     </Card>
   );
 }

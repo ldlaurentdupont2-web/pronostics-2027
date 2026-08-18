@@ -89,7 +89,11 @@ function QuestionCard({ q, index, data, me, onSave }) {
 
   const valider = () => {
     if (q.type === "numerique") {
-      if (reponse === "" || isNaN(Number(reponse))) return;
+      if (reponse === "") {
+        onSave(q.id, null, prob); // passe explicitement : "je ne pense pas que ce scénario se produira"
+        return;
+      }
+      if (isNaN(Number(reponse))) return;
       onSave(q.id, Number(reponse), prob);
     } else {
       onSave(q.id, reponse, prob);
@@ -99,9 +103,15 @@ function QuestionCard({ q, index, data, me, onSave }) {
   const dirty = isMulti
     ? JSON.stringify([...reponse].sort()) !== JSON.stringify([...(existing?.reponse ?? [])].sort())
     : q.type === "numerique"
-    ? String(reponse) !== String(existing?.reponse ?? "")
+    ? (reponse === "" ? null : Number(reponse)) !== (existing?.reponse ?? null)
     : reponse !== (existing?.reponse ?? "");
-  const peutValider = isMulti ? reponse.length > 0 : q.type === "numerique" ? reponse !== "" && !isNaN(Number(reponse)) : q.type === "texte" || q.type === "texte_pari" ? true : !!reponse;
+  const peutValider = isMulti
+    ? reponse.length > 0
+    : q.type === "numerique"
+    ? reponse === "" || !isNaN(Number(reponse)) // vide accepté : "je passe, ce scénario ne se produira pas selon moi"
+    : q.type === "texte" || q.type === "texte_pari"
+    ? true
+    : !!reponse;
 
   return (
     <Card>
@@ -144,18 +154,23 @@ function QuestionCard({ q, index, data, me, onSave }) {
           </p>
         </div>
       ) : q.type === "numerique" ? (
-        <div className="mb-3 flex items-center gap-2">
-          <input
-            type="number"
-            step={q.numeriqueEntier ? "1" : "0.1"}
-            min="0"
-            max={q.numeriqueEntier ? undefined : 100}
-            style={{ ...inputStyle, width: 110 }}
-            value={reponse}
-            onChange={(e) => setReponse(e.target.value)}
-            placeholder={q.numeriqueEntier ? "Ex. 6" : "Ex. 24.5"}
-          />
-          {!q.numeriqueEntier && <span className="text-sm" style={{ color: COLORS.paperDim }}>%</span>}
+        <div className="mb-1">
+          <div className="flex items-center gap-2 mb-1.5">
+            <input
+              type="number"
+              step={q.numeriqueEntier ? "1" : "0.1"}
+              min="0"
+              max={q.numeriqueEntier ? undefined : 100}
+              style={{ ...inputStyle, width: 110 }}
+              value={reponse}
+              onChange={(e) => setReponse(e.target.value)}
+              placeholder={q.numeriqueEntier ? "Ex. 6" : "Ex. 24.5"}
+            />
+            {!q.numeriqueEntier && <span className="text-sm" style={{ color: COLORS.paperDim }}>%</span>}
+          </div>
+          <p className="text-xs" style={{ color: COLORS.paperDim }}>
+            Laissez vide et validez si vous ne pensez pas que ce scénario se produira — vous ne serez ni pénalisé, ni exclu du reste du jeu.
+          </p>
         </div>
       ) : candidatOptions ? (
         <div className="flex flex-wrap gap-2 mb-3">

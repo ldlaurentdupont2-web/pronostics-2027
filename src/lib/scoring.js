@@ -67,6 +67,7 @@ export function scoreForParticipant(participantId, data) {
       if (!q) return;
       const res = data.resultats.find((r) => r.questionId === q.id);
       if (!res) return;
+      if (res.resultat && typeof res.resultat === "object" && res.resultat.annulee) return; // question sans objet : 0 pt pour tout le monde
       if (q.type === "texte") return;
       // Le bonus d'anticipation a été retiré : les points sont ceux de la question, sans multiplicateur.
       const coeff = 1;
