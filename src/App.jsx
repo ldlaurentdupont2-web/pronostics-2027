@@ -116,7 +116,7 @@ export default function App() {
             <div className="text-xs tracking-widest uppercase" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
               Présidentielle 2027
             </div>
-            <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 22, fontWeight: 600 }}>Pronostics</h1>
+            <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 22, fontWeight: 600 }}>QuiAvaitRaison</h1>
           </div>
           {!editingNom ? (
             <div className="text-right">
@@ -279,8 +279,11 @@ function AuthScreen() {
           Présidentielle 2027
         </div>
         <h1 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 28, fontWeight: 700 }}>
-          Pronostics
+          QuiAvaitRaison
         </h1>
+        <p className="text-sm mt-2" style={{ color: COLORS.paperDim, fontStyle: "italic" }}>
+          En mai 2027, on saura qui avait raison.
+        </p>
       </div>
       <Card>
         {mode !== "forgot" && (

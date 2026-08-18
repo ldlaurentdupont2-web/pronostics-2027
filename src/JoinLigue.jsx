@@ -108,7 +108,7 @@ export default function JoinLigue({ code }) {
           <HeaderPortrait size={110} />
         </div>
         <div className="text-xs tracking-widest uppercase mb-2" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
-          Présidentielle 2027 · Pronostics
+          Présidentielle 2027 · QuiAvaitRaison
         </div>
       </div>
 

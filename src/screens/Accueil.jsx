@@ -59,9 +59,10 @@ export default function Accueil({ data, me, setTab }) {
             <div className="text-xs uppercase tracking-wide" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace" }}>
               Présidentielle 2027
             </div>
-            <h2 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 20, fontWeight: 600 }}>Pronostics</h2>
+            <h2 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 20, fontWeight: 600 }}>QuiAvaitRaison</h2>
           </div>
         </div>
+        <p className="text-xs italic mb-3" style={{ color: COLORS.paperDim }}>En mai 2027, on saura qui avait raison.</p>
         <p className="text-sm mb-3" style={{ color: COLORS.paperDim }}>
           Bienvenue dans l'arène !<br />
           Répondez régulièrement aux questions de la session en cours (le calendrier vous dira à quel rythme selon la période), comparez
