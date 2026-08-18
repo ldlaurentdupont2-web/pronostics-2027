@@ -134,10 +134,10 @@ export default function Classement({ data, me }) {
 function InviteModal({ ligue, onClose }) {
   const [copie, setCopie] = useState(false);
   const lien = `${window.location.origin}/join/${ligue.code}`;
-  // Note : l'émoji urne de vote est utilisé sans son "sélecteur de variante" (U+FE0F),
-  // qui passe mal dans la chaîne de redirection de wa.me et peut casser l'affichage
-  // une fois le message reçu sur WhatsApp.
-  const message = `🗳 Je t'invite dans ma ligue « ${ligue.nom} » sur Pronostics Présidentielle 2027. Qui aura vu juste ? Fais tes pronostics pendant toute la campagne et défie-nous au classement. 👉 ${lien}`;
+  // Note : la boule de cristal est utilisée plutôt que l'urne de vote, dont le rendu
+  // est peu fiable sur certains systèmes (notamment Windows), qui affichent parfois un
+  // symbole de substitution à la place d'une vraie icône colorée.
+  const message = `🔮 Je t'invite dans ma ligue « ${ligue.nom} » sur Pronostics Présidentielle 2027. Qui aura vu juste ? Fais tes pronostics pendant toute la campagne et défie-nous au classement. 👉 ${lien}`;
 
   const copierLien = async () => {
     try {
