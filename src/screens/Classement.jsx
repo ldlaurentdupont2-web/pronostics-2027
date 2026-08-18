@@ -134,10 +134,10 @@ export default function Classement({ data, me }) {
 function InviteModal({ ligue, onClose }) {
   const [copie, setCopie] = useState(false);
   const lien = `${window.location.origin}/join/${ligue.code}`;
-  // Note : la boule de cristal est utilisée plutôt que l'urne de vote, dont le rendu
-  // est peu fiable sur certains systèmes (notamment Windows), qui affichent parfois un
-  // symbole de substitution à la place d'une vraie icône colorée.
-  const message = `🔮 Je t'invite dans ma ligue « ${ligue.nom} » sur Pronostics Présidentielle 2027. Qui aura vu juste ? Fais tes pronostics pendant toute la campagne et défie-nous au classement. 👉 ${lien}`;
+  // Pas d'émoji dans le message : leur rendu dépend trop de la police système du
+  // destinataire (Windows notamment affiche parfois un losange à la place). La flèche
+  // "→" est un simple caractère typographique, pas un emoji — aucun risque de ce genre.
+  const message = `Je t'invite dans ma ligue « ${ligue.nom} » sur Pronostics Présidentielle 2027. Qui aura vu juste ? Fais tes pronostics pendant toute la campagne et défie-nous au classement. → ${lien}`;
 
   const copierLien = async () => {
     try {
