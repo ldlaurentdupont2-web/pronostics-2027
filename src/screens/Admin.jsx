@@ -24,6 +24,7 @@ import {
   updateEcheance,
   deleteEcheance,
   fetchParticipantsWithEmail,
+  leaveLigue,
 } from "../lib/db";
 
 export default function Admin({ data }) {
@@ -980,7 +981,20 @@ function AdminParticipants({ data }) {
                   {membres.map((m) => (
                     <tr key={m.id} style={{ borderTop: `1px solid ${COLORS.ink700}` }}>
                       <td className="py-1.5 pr-2" style={{ color: COLORS.paper }}>{m.nom}</td>
-                      <td className="py-1.5 text-right" style={{ color: COLORS.paperDim }}>{emails[m.id] || "—"}</td>
+                      <td className="py-1.5 pr-2 text-right" style={{ color: COLORS.paperDim }}>{emails[m.id] || "—"}</td>
+                      <td className="py-1.5 text-right">
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Retirer ${m.nom} de la ligue « ${l.nom} » ? Il pourra se réinscrire plus tard avec le même code.`)) {
+                              leaveLigue(m.id, l.id);
+                            }
+                          }}
+                          className="text-xs"
+                          style={{ color: COLORS.danger }}
+                        >
+                          retirer
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
