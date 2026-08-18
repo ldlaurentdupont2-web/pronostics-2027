@@ -81,14 +81,18 @@ export function subscribeToChanges(onChange) {
 
 /* ---------- authentification ---------- */
 
-export async function signUp(email, password, nom) {
+export async function signUp(email, password, nom, emailRedirectTo) {
   // Vérifie la disponibilité du prénom avant de créer le compte, pour éviter de bloquer
   // plus tard sur la contrainte d'unicité (voir migration_009) sans pouvoir corriger facilement.
   if (nom) {
     const disponible = await nomDisponible(nom);
     if (!disponible) throw new Error("Ce prénom est déjà utilisé par un autre joueur — choisissez-en un autre.");
   }
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: emailRedirectTo ? { emailRedirectTo } : undefined,
+  });
   if (error) throw error;
   // On garde le nom choisi de côté : si la confirmation par email est activée,
   // la session n'existe pas encore ici, et c'est App.jsx qui créera le profil
@@ -212,9 +216,17 @@ export async function deleteEcheance(id) {
 
 // Rejoindre une ligue par son code passe par une fonction Postgres sécurisée (join_ligue) :
 // impossible d'insérer une adhésion directement sans connaître le bon code.
-export async function joinLigueByCode(code) {
-  const { error } = await supabase.rpc("join_ligue", { p_code: code });
+export async function joinLigueByCode(code, methode = "manual_code") {
+  const { error } = await supabase.rpc("join_ligue", { p_code: code, p_methode: methode });
   if (error) throw error;
+}
+
+// Prévisualisation publique (fonctionne même sans être connecté) : renvoie le nom de la
+// ligue pour un code donné, ou null si le code est invalide. Utilisé par /join/:code.
+export async function previewLigue(code) {
+  const { data, error } = await supabase.rpc("preview_ligue", { p_code: code });
+  if (error) throw error;
+  return data && data[0] ? data[0].nom : null;
 }
 
 /* ---------- pronostics ---------- */

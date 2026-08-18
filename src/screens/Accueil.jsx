@@ -40,7 +40,7 @@ export default function Accueil({ data, me, setTab }) {
     setCreerBusy(true);
     try {
       const created = await addLigue(nouvNom.trim());
-      await joinLigueByCode(created.code);
+      await joinLigueByCode(created.code, "creator");
       setDernierCode(created.code);
       setNouvNom("");
     } catch (e) {

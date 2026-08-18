@@ -34,7 +34,7 @@ export default function RequireLigueGate({ me }) {
     setCreerBusy(true);
     try {
       const created = await addLigue(nouvNom.trim());
-      await joinLigueByCode(created.code);
+      await joinLigueByCode(created.code, "creator");
       setDernierCode(created.code);
     } catch (e) {
       setCreerErr("La création a échoué : " + (e?.message || "erreur inconnue"));
