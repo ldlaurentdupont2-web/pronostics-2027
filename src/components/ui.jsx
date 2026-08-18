@@ -221,3 +221,17 @@ export function HeaderPortrait({ size = 140 }) {
     />
   );
 }
+
+export function Modal({ onClose, children }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(15,27,45,0.6)" }}
+      onClick={onClose}
+    >
+      <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md rounded-2xl p-5" style={{ background: COLORS.ink800, border: `1px solid ${COLORS.ink600}` }}>
+        {children}
+      </div>
+    </div>
+  );
+}

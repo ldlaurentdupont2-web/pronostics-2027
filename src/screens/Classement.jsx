@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Card, COLORS, inputStyle, Button } from "../components/ui";
+import { Card, COLORS, inputStyle, Button, Modal } from "../components/ui";
 import { fmtDateTime } from "../lib/format";
 import { scoreForParticipant, ligueMembers } from "../lib/scoring";
 import { leaveLigue, addCommentaire } from "../lib/db";
@@ -7,6 +7,7 @@ import { leaveLigue, addCommentaire } from "../lib/db";
 export default function Classement({ data, me }) {
   const mesLigueIds = data.adhesions.filter((a) => a.participantId === me.id).map((a) => a.ligueId);
   const [ligueId, setLigueId] = useState(mesLigueIds[0] || "");
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const members = ligueId ? ligueMembers(ligueId, data) : [];
   const ranking = members.map((p) => ({ p, ...scoreForParticipant(p.id, data) })).sort((a, b) => b.total - a.total);
@@ -96,6 +97,7 @@ export default function Classement({ data, me }) {
               <p className="text-xs mb-3" style={{ color: COLORS.paperDim }}>
                 {ranking.length} inscrit{ranking.length > 1 ? "s" : ""} — tous les membres apparaissent ci-dessous, même à 0 point tant qu'aucun résultat n'est encore tombé.
               </p>
+              <Button variant="ghost" onClick={() => setInviteOpen(true)} className="mb-3">Inviter des amis</Button>
               {ranking.length === 0 ? (
                 <p className="text-sm" style={{ color: COLORS.paperDim }}>Aucun membre pour l'instant.</p>
               ) : (
@@ -122,7 +124,70 @@ export default function Classement({ data, me }) {
           {ligueId && <CommentairesLigue data={data} me={me} ligueId={ligueId} />}
         </>
       )}
+      {inviteOpen && ligueId && (
+        <InviteModal ligue={data.ligues.find((l) => l.id === ligueId)} onClose={() => setInviteOpen(false)} />
+      )}
     </div>
+  );
+}
+
+function InviteModal({ ligue, onClose }) {
+  const [copie, setCopie] = useState(false);
+  const lien = `${window.location.origin}/join/${ligue.code}`;
+  const message = `🗳️ Je t'invite dans ma ligue « ${ligue.nom} » sur Pronostics Présidentielle 2027. Qui aura vu juste ? Fais tes pronostics pendant toute la campagne et défie-nous au classement. 👉 ${lien}`;
+
+  const copierLien = async () => {
+    try {
+      await navigator.clipboard.writeText(lien);
+      setCopie(true);
+      setTimeout(() => setCopie(false), 2000);
+    } catch {
+      setCopie(false);
+    }
+  };
+
+  const partageNatifDisponible = typeof navigator !== "undefined" && !!navigator.share;
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 18, fontWeight: 600 }}>Inviter des amis</h3>
+        <button onClick={onClose} className="text-xl leading-none" style={{ color: COLORS.paperDim }}>×</button>
+      </div>
+      <p className="text-xs mb-1" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Message qui sera partagé</p>
+      <div className="rounded-xl p-3 mb-4 text-sm" style={{ background: COLORS.ink900, border: `1px solid ${COLORS.ink600}`, color: COLORS.paper }}>
+        {message}
+      </div>
+      <div className="flex flex-col gap-2">
+        <Button
+          onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer")}
+          className="w-full"
+        >
+          Partager sur WhatsApp
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            (window.location.href = `mailto:?subject=${encodeURIComponent(`Invitation à rejoindre « ${ligue.nom} »`)}&body=${encodeURIComponent(message)}`)
+          }
+          className="w-full"
+        >
+          Envoyer par email
+        </Button>
+        <Button variant="ghost" onClick={copierLien} className="w-full">
+          {copie ? "✓ Lien copié" : "Copier le lien"}
+        </Button>
+        {partageNatifDisponible && (
+          <Button
+            variant="ghost"
+            onClick={() => navigator.share({ title: `Rejoins « ${ligue.nom} »`, text: message }).catch(() => {})}
+            className="w-full"
+          >
+            Autre application…
+          </Button>
+        )}
+      </div>
+    </Modal>
   );
 }
 
