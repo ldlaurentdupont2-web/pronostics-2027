@@ -387,7 +387,7 @@ function QuestionEditor({ session, data }) {
     .map((f) => ({ famille: f, cands: data.candidats.filter((c) => c.familleId === f.id) }))
     .filter((x) => x.cands.length > 0)
     .map((x) => ({
-      libelle: `Qui arrivera en tête de la famille « ${x.famille.nom} » au premier tour, et avec quel score ? (2 pts bon candidat + 1 pt score le plus proche, réservé à ceux qui ont le bon candidat)`,
+      libelle: `Qui arrivera en tête de la famille « ${x.famille.nom} » au premier tour, et avec quel score ? (2 pts bon candidat + jusqu'à 1 pt de bonus selon la précision du score, réservé à ceux qui ont le bon candidat)`,
       type: "candidat_score",
       candidatIds: x.cands.map((c) => c.id),
       points: 2,
@@ -409,21 +409,21 @@ function QuestionEditor({ session, data }) {
   // Questions variables du mois : à garder, adapter ou remplacer session après session.
   const questionsVariablesSuggestions = [
     {
-      libelle: "Quel sera, au premier tour, le score (%) du candidat de la famille « Droite nationale » arrivé en tête de sa famille ? (le plus proche gagne, réponse à 1 décimale)",
+      libelle: "Quel sera, au premier tour, le score (%) du candidat de la famille « Droite nationale » arrivé en tête de sa famille ? (points progressifs selon l'écart au résultat, réponse à 1 décimale)",
       type: "numerique",
       candidatIds: [],
       points: 2,
       resultatAttendu: "18 avril 2027 (1er tour)",
     },
     {
-      libelle: "Quel sera, au premier tour, le score (%) du candidat de la famille « Gauche radicale » arrivé en tête de sa famille ? (le plus proche gagne, réponse à 1 décimale)",
+      libelle: "Quel sera, au premier tour, le score (%) du candidat de la famille « Gauche radicale » arrivé en tête de sa famille ? (points progressifs selon l'écart au résultat, réponse à 1 décimale)",
       type: "numerique",
       candidatIds: [],
       points: 2,
       resultatAttendu: "18 avril 2027 (1er tour)",
     },
     {
-      libelle: "Quel sera, au premier tour, le score (%) du candidat de la famille « Gauche sociale-démocrate, écologiste et alliés » arrivé en tête de sa famille ? (le plus proche gagne, réponse à 1 décimale)",
+      libelle: "Quel sera, au premier tour, le score (%) du candidat de la famille « Gauche sociale-démocrate, écologiste et alliés » arrivé en tête de sa famille ? (points progressifs selon l'écart au résultat, réponse à 1 décimale)",
       type: "numerique",
       candidatIds: [],
       points: 2,
@@ -578,7 +578,7 @@ function QuestionEditor({ session, data }) {
           <option value="choix_unique">Choix unique</option>
           <option value="choix_multiple">Choix multiple</option>
           <option value="oui_non">Oui / non</option>
-          <option value="numerique">Numérique (le plus proche gagne)</option>
+          <option value="numerique">Numérique (points progressifs selon l'écart)</option>
           <option value="candidat_score">Tête de famille + score</option>
           <option value="texte_pari">Pari nominatif (texte libre, noté)</option>
           <option value="texte">Texte libre (non classant)</option>
@@ -651,7 +651,7 @@ function QuestionEditor({ session, data }) {
               type === "choix_multiple"
                 ? "Points par candidat correctement deviné"
                 : type === "numerique"
-                ? "Points pour l'estimation la plus proche"
+                ? "Points pleins de la question (barème dégressif selon l'écart au résultat)"
                 : type === "candidat_score"
                 ? "Points pour le bon candidat en tête"
                 : type === "texte_pari"
@@ -662,7 +662,7 @@ function QuestionEditor({ session, data }) {
             <input type="number" style={inputStyle} value={points} onChange={(e) => setPoints(e.target.value)} />
           </Field>
           {type === "candidat_score" && (
-            <Field label="Points bonus pour le score le plus proche (réservé à ceux qui ont le bon candidat)">
+            <Field label="Points bonus maximum selon la précision du score (réservé à ceux qui ont le bon candidat)">
               <input type="number" style={inputStyle} value={pointsScore} onChange={(e) => setPointsScore(e.target.value)} />
             </Field>
           )}
@@ -687,7 +687,7 @@ function QuestionEditor({ session, data }) {
               </label>
               <label className="flex items-center gap-2 mb-3 text-sm" style={{ color: COLORS.paper }}>
                 <input type="checkbox" checked={numeriqueExact} onChange={(e) => setNumeriqueExact(e.target.checked)} />
-                Points pour toute réponse exacte (au lieu de "le plus proche gagne")
+                Points pour toute réponse exacte (au lieu du barème dégressif selon l'écart)
               </label>
             </>
           )}

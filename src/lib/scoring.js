@@ -31,30 +31,43 @@ export function normaliseNom(s) {
     .replace(/\s+/g, " ");
 }
 
-// Pour une question "numerique" avec résultat officiel connu : qui a donné l'estimation
-// la plus proche ? (plusieurs gagnants ex æquo possibles)
-export function numericWinners(q, data) {
-  const res = data.resultats.find((r) => r.questionId === q.id);
-  if (!res || typeof res.resultat !== "number") return { winners: [], diff: null };
-  const reps = data.pronostics.filter((p) => p.questionId === q.id && typeof p.reponse === "number");
-  if (reps.length === 0) return { winners: [], diff: null };
-  const minDiff = Math.min(...reps.map((p) => Math.abs(p.reponse - res.resultat)));
-  const winners = reps.filter((p) => Math.abs(p.reponse - res.resultat) === minDiff).map((p) => p.participantId);
-  return { winners, diff: minDiff };
+// Barème progressif pour une estimation numérique (score en %) : chaque joueur est évalué
+// indépendamment des autres, en fonction de l'écart entre son pronostic et le résultat officiel.
+// Deux paliers selon que le résultat officiel est un "petit" score (<10 %) ou non, pour rester
+// équitable envers les petits candidats (un écart de 2 points n'a pas le même sens sur un score
+// de 2 % que sur un score de 25 %).
+const PALIERS_GRAND_SCORE = [
+  [0.5, 1],
+  [1, 0.75],
+  [2, 0.5],
+  [3, 0.25],
+];
+const PALIERS_PETIT_SCORE = [
+  [0.2, 1],
+  [0.4, 0.75],
+  [0.8, 0.5],
+  [1.5, 0.25],
+];
+
+export function coeffEcartNumerique(ecart, resultatOfficiel) {
+  const paliers = Math.abs(resultatOfficiel) < 10 ? PALIERS_PETIT_SCORE : PALIERS_GRAND_SCORE;
+  for (const [seuil, coeff] of paliers) {
+    if (ecart <= seuil) return coeff;
+  }
+  return 0;
 }
 
-// Pour une question "candidat_score" : parmi ceux qui ont deviné le bon candidat en tête,
-// qui a donné le score le plus proche ? (les autres ne participent pas à ce bonus)
-export function candidatScoreWinners(q, data) {
-  const res = data.resultats.find((r) => r.questionId === q.id);
-  if (!res || !res.resultat || typeof res.resultat.score !== "number") return { winners: [], diff: null };
-  const eligibles = data.pronostics.filter(
-    (p) => p.questionId === q.id && p.reponse && p.reponse.candidat === res.resultat.candidat && typeof p.reponse.score === "number"
-  );
-  if (eligibles.length === 0) return { winners: [], diff: null };
-  const minDiff = Math.min(...eligibles.map((p) => Math.abs(p.reponse.score - res.resultat.score)));
-  const winners = eligibles.filter((p) => Math.abs(p.reponse.score - res.resultat.score) === minDiff).map((p) => p.participantId);
-  return { winners, diff: minDiff };
+// Calcule l'écart (arrondi au dixième, pour éviter les soucis d'arithmétique flottante sur les
+// bornes exactes comme 0,5 ou 1) et les points obtenus pour une estimation numérique donnée.
+// pointsMax est le nombre de points pleins de la question (ou du bonus score, selon le contexte).
+export function pointsEcartNumerique(pointsMax, reponseValeur, resultatValeur) {
+  if (typeof reponseValeur !== "number" || typeof resultatValeur !== "number") {
+    return { pts: 0, ecart: null, coeffEcart: 0 };
+  }
+  const ecart = Math.round(Math.abs(reponseValeur - resultatValeur) * 10) / 10;
+  const coeffEcart = coeffEcartNumerique(ecart, resultatValeur);
+  const pts = Math.round((pointsMax || 0) * coeffEcart);
+  return { pts, ecart, coeffEcart };
 }
 
 export function scoreForParticipant(participantId, data) {
@@ -94,11 +107,11 @@ export function scoreForParticipant(participantId, data) {
           detail.push({ question: q, pts, coeff, note: "réponse exacte" });
           return;
         }
-        const { winners, diff } = numericWinners(q, data);
-        if (!winners.includes(participantId)) return;
-        const pts = Math.round(q.points * coeff * 10) / 10;
+        const { pts: ptsBase, ecart } = pointsEcartNumerique(q.points, p.reponse, res.resultat);
+        if (ptsBase === 0) return;
+        const pts = Math.round(ptsBase * coeff);
         total += pts;
-        detail.push({ question: q, pts, coeff, note: `estimation la plus proche (écart ${diff})` });
+        detail.push({ question: q, pts, coeff, note: `écart ${ecart} pt${ecart > 1 ? "s" : ""}` });
         return;
       }
 
@@ -106,14 +119,13 @@ export function scoreForParticipant(participantId, data) {
         if (!res.resultat || !p.reponse) return;
         const bonCandidat = p.reponse.candidat === res.resultat.candidat;
         if (!bonCandidat) return;
-        let pts = (q.points || 0) * coeff;
+        let pts = Math.round((q.points || 0) * coeff);
         let note = "bon candidat en tête";
-        const { winners } = candidatScoreWinners(q, data);
-        if (winners.includes(participantId)) {
-          pts += (q.pointsScore || 0) * coeff;
-          note += " + score le plus proche";
+        const { pts: bonus, ecart } = pointsEcartNumerique(q.pointsScore, p.reponse.score, res.resultat.score);
+        if (bonus > 0) {
+          pts += Math.round(bonus * coeff);
+          note += ` + bonus score (écart ${ecart} pt${ecart > 1 ? "s" : ""})`;
         }
-        pts = Math.round(pts * 10) / 10;
         if (pts === 0) return;
         total += pts;
         detail.push({ question: q, pts, coeff, note });

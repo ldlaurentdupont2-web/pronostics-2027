@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, COLORS } from "../components/ui";
-import { reponsesEgales, normaliseNom, numericWinners, candidatScoreWinners, ligueMembers } from "../lib/scoring";
+import { reponsesEgales, normaliseNom, ligueMembers, pointsEcartNumerique } from "../lib/scoring";
 
 function afficheReponse(q, r) {
   if (r && typeof r === "object" && r.annulee) return "sans objet";
@@ -32,14 +32,16 @@ function labelPoints(q, res, data, participantId, p) {
     if (q.numeriqueExact) {
       return typeof p.reponse === "number" && p.reponse === res.resultat ? `🏅 +${q.points} pts` : "—";
     }
-    const { winners } = numericWinners(q, data);
-    return winners.includes(participantId) ? "🏆" : typeof p.reponse === "number" ? `écart ${Math.abs(p.reponse - res.resultat).toFixed(1)}` : "—";
+    if (typeof p.reponse !== "number") return "—";
+    const { pts, ecart } = pointsEcartNumerique(q.points, p.reponse, res.resultat);
+    return pts > 0 ? `+${pts} pts (écart ${ecart} pt${ecart > 1 ? "s" : ""})` : `écart ${ecart} pt${ecart > 1 ? "s" : ""}, 0 pt`;
   }
   if (q.type === "candidat_score" && p.reponse) {
     const bonCandidat = res.resultat && p.reponse.candidat === res.resultat.candidat;
     if (!bonCandidat) return "mauvais candidat";
-    const { winners } = candidatScoreWinners(q, data);
-    return winners.includes(participantId) ? `🏆 +${q.points + (q.pointsScore || 0)} pts` : `bon candidat +${q.points} pts`;
+    const { pts: bonus, ecart } = pointsEcartNumerique(q.pointsScore, p.reponse.score, res.resultat.score);
+    const total = q.points + bonus;
+    return bonus > 0 ? `+${total} pts (bon candidat + écart ${ecart} pt${ecart > 1 ? "s" : ""})` : `bon candidat +${q.points} pts`;
   }
   if (q.type === "texte_pari") {
     if (typeof p.reponse !== "string" || !p.reponse.trim()) return "pas de pari";

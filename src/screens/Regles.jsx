@@ -95,16 +95,20 @@ export default function Regles() {
                   Numérique
                 </td>
                 <td className="py-2 px-1">
-                  Deux variantes possibles selon la question : soit seul le joueur le plus proche du résultat officiel gagne les points
-                  (ex-æquo possibles, typiquement pour un score en %), soit tout le monde qui tombe exactement juste gagne les points
-                  (typiquement pour un dénombrement entier). C'est précisé dans l'intitulé de la question.
+                  Deux variantes possibles selon la question : soit <strong style={{ color: COLORS.paper }}>plus votre pronostic est proche
+                  du résultat officiel, plus vous marquez de points</strong> (barème dégressif détaillé ci-dessous, chacun est évalué
+                  indépendamment des autres — typiquement pour un score en %), soit tout le monde qui tombe exactement juste gagne les
+                  points (typiquement pour un dénombrement entier). C'est précisé dans l'intitulé de la question.
                 </td>
               </tr>
               <tr style={{ borderBottom: `1px solid ${COLORS.ink700}` }}>
                 <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>
                   Tête de famille + score
                 </td>
-                <td className="py-2 px-1">Points "candidat" si bon candidat deviné. Points "score" en plus pour le plus proche parmi eux.</td>
+                <td className="py-2 px-1">
+                  Points "candidat" si le bon candidat est deviné (sinon 0, y compris pour le score). Si le candidat est correct, un bonus
+                  "score" s'ajoute selon le même barème dégressif que ci-dessous, appliqué à l'écart entre votre score et le résultat réel.
+                </td>
               </tr>
               <tr style={{ borderBottom: `1px solid ${COLORS.ink700}` }}>
                 <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>
@@ -138,6 +142,32 @@ export default function Regles() {
             </tbody>
           </table>
         </div>
+        <p className="text-xs mt-3 mb-1.5" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
+          Barème dégressif "numérique" et bonus score — écart entre votre pronostic et le résultat officiel
+        </p>
+        <div className="overflow-x-auto -mx-1">
+          <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${COLORS.ink600}` }}>
+                <th className="text-left py-1.5 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Écart</th>
+                <th className="text-left py-1.5 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Points</th>
+                <th className="text-left py-1.5 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Si résultat officiel &lt; 10 %</th>
+              </tr>
+            </thead>
+            <tbody style={{ color: COLORS.paperDim }}>
+              <tr><td className="py-1 px-1">≤ 0,5 pt</td><td className="py-1 px-1" style={{ color: COLORS.goldSoft }}>100 %</td><td className="py-1 px-1">≤ 0,2 pt</td></tr>
+              <tr><td className="py-1 px-1">≤ 1 pt</td><td className="py-1 px-1" style={{ color: COLORS.goldSoft }}>75 %</td><td className="py-1 px-1">≤ 0,4 pt</td></tr>
+              <tr><td className="py-1 px-1">≤ 2 pts</td><td className="py-1 px-1" style={{ color: COLORS.goldSoft }}>50 %</td><td className="py-1 px-1">≤ 0,8 pt</td></tr>
+              <tr><td className="py-1 px-1">≤ 3 pts</td><td className="py-1 px-1" style={{ color: COLORS.goldSoft }}>25 %</td><td className="py-1 px-1">≤ 1,5 pt</td></tr>
+              <tr><td className="py-1 px-1">au-delà</td><td className="py-1 px-1" style={{ color: COLORS.paperDim }}>0</td><td className="py-1 px-1">au-delà</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs mt-2" style={{ color: COLORS.paperDim }}>
+          Les seuils sont resserrés pour un résultat officiel inférieur à 10 % (petits candidats), pour rester équitables — un écart de 2
+          points n'a pas le même sens sur un score de 2 % que sur un score de 25 %. Chaque joueur est évalué indépendamment des autres :
+          plusieurs personnes peuvent obtenir les pleins points, ou le même score, sur la même question.
+        </p>
       </Card>
 
       {PHASES.map((p, i) => (
