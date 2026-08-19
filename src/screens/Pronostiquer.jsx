@@ -144,11 +144,17 @@ function QuestionCard({ q, index, data, me, onSave }) {
         <div className="mb-1">
           <input
             type="text"
+            list={`suggestions-${q.id}`}
             style={inputStyle}
             value={reponse}
             onChange={(e) => setReponse(e.target.value)}
             placeholder="Nom du candidat (laissez vide si aucun pari)"
           />
+          <datalist id={`suggestions-${q.id}`}>
+            {data.candidats.map((c) => (
+              <option key={c.id} value={c.nom} />
+            ))}
+          </datalist>
           <p className="text-xs mt-1.5" style={{ color: COLORS.paperDim }}>
             {q.points} pts si ce nom sort effectivement{q.penalite ? `, -${q.penalite} pts sinon` : ""}. Laisser vide = pas de pari, pas de risque.
           </p>

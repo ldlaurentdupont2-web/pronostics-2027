@@ -114,7 +114,10 @@ export default function Regles() {
                 <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>
                   Pari nominatif
                 </td>
-                <td className="py-2 px-1">Points pleins si le nom correspond à un résultat accepté. Pénalité si faux. Vide = pas de pari.</td>
+                <td className="py-2 px-1">
+                  Points pleins si le nom correspond à un résultat accepté — les petites fautes de frappe, formes courtes (nom de famille
+                  seul) ou initiales sont automatiquement tolérées. Pénalité si faux. Vide = pas de pari.
+                </td>
               </tr>
               <tr>
                 <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>

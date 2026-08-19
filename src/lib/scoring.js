@@ -20,7 +20,8 @@ export function reponsesEgales(a, b) {
   return a === b;
 }
 
-// Normalise un nom pour comparer un pari en texte libre (accents, casse, espaces ignorés)
+// Normalise un nom pour comparer un pari en texte libre (accents, casse, espaces,
+// tirets ignorés — "Jean-Luc" et "Jean Luc" sont ainsi traités pareil).
 export function normaliseNom(s) {
   return (s || "")
     .toString()
@@ -28,7 +29,68 @@ export function normaliseNom(s) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/-/g, " ")
     .replace(/\s+/g, " ");
+}
+
+// Distance de Levenshtein : nombre minimal de lettres à changer pour passer d'un mot
+// à l'autre. Sert à tolérer les fautes de frappe sans les confondre avec un autre nom.
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+// Deux mots se ressemblent s'ils sont identiques, ou à 1-2 lettres près selon leur
+// longueur (jamais pour des mots de 2 lettres ou moins, pour éviter les faux positifs).
+function motsRessemblent(a, b) {
+  if (a === b) return true;
+  if (a.length <= 2 || b.length <= 2) return false;
+  const tolerance = Math.max(a.length, b.length) <= 7 ? 1 : 2;
+  return levenshtein(a, b) <= tolerance;
+}
+
+// Compare la réponse d'un joueur à un nom officiel accepté, avec tolérance aux fautes
+// de frappe et reconnaissance des formes courtes (nom de famille seul, initiale + nom).
+// La comparaison se fait mot à mot (pas sur la chaîne entière) : ça évite qu'une
+// tolérance globale ne confonde deux prénoms proches mais différents (ex. Marine/Marion
+// Le Pen restent bien distingués).
+export function nomsRessemblent(reponseNorm, officielNorm) {
+  if (!reponseNorm || !officielNorm) return false;
+  if (reponseNorm === officielNorm) return true;
+
+  const motsRep = reponseNorm.split(" ").filter(Boolean);
+  const motsOff = officielNorm.split(" ").filter(Boolean);
+
+  // Nom de famille seul (ex. "Philippe" pour "Édouard Philippe")
+  if (motsOff.length >= 2 && motsRep.length === 1) {
+    const nomFamille = motsOff[motsOff.length - 1];
+    if (motsRep[0] === nomFamille || motsRessemblent(motsRep[0], nomFamille)) return true;
+  }
+
+  // Initiale + nom de famille (ex. "E Philippe" pour "Édouard Philippe")
+  if (motsOff.length >= 2 && motsRep.length === 2) {
+    const prenomOff = motsOff[0];
+    const nomFamilleOff = motsOff[motsOff.length - 1];
+    if (motsRep[0] === prenomOff[0] && motsRessemblent(motsRep[1], nomFamilleOff)) return true;
+  }
+
+  // Nom complet, mot à mot, avec tolérance aux fautes de frappe sur chaque mot
+  if (motsRep.length === motsOff.length && motsRep.length >= 2) {
+    return motsRep.every((m, i) => motsRessemblent(m, motsOff[i]));
+  }
+
+  return false;
 }
 
 // Barème progressif pour une estimation numérique (score en %) : chaque joueur est évalué
@@ -136,7 +198,7 @@ export function scoreForParticipant(participantId, data) {
         if (typeof p.reponse !== "string" || !p.reponse.trim()) return; // laissé vide = pas de pari, pas de pénalité
         if (!Array.isArray(res.resultat)) return;
         const norm = normaliseNom(p.reponse);
-        const correct = res.resultat.some((r) => normaliseNom(r) === norm);
+        const correct = res.resultat.some((r) => nomsRessemblent(norm, normaliseNom(r)));
         if (correct) {
           const pts = Math.round((q.points || 0) * coeff * 10) / 10;
           total += pts;

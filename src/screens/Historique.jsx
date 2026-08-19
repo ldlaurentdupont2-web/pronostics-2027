@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, COLORS } from "../components/ui";
-import { reponsesEgales, normaliseNom, ligueMembers, pointsEcartNumerique } from "../lib/scoring";
+import { reponsesEgales, normaliseNom, nomsRessemblent, ligueMembers, pointsEcartNumerique } from "../lib/scoring";
 
 function afficheReponse(q, r) {
   if (r && typeof r === "object" && r.annulee) return "sans objet";
@@ -46,7 +46,7 @@ function labelPoints(q, res, data, participantId, p) {
   if (q.type === "texte_pari") {
     if (typeof p.reponse !== "string" || !p.reponse.trim()) return "pas de pari";
     const norm = normaliseNom(p.reponse);
-    const bon = Array.isArray(res.resultat) && res.resultat.some((r) => normaliseNom(r) === norm);
+    const bon = Array.isArray(res.resultat) && res.resultat.some((r) => nomsRessemblent(norm, normaliseNom(r)));
     return bon ? `🏆 +${q.points} pts` : q.penalite ? `-${q.penalite} pts` : "—";
   }
   if (q.type !== "texte") {
