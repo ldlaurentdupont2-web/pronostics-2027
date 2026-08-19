@@ -3,11 +3,13 @@ import { COLORS } from "../components/ui";
 import Classement from "./Classement";
 import Groupe from "./Groupe";
 import Evolution from "./Evolution";
+import Badges from "./Badges";
 
 export default function ClassementGroupe({ data, me }) {
   const [sousOnglet, setSousOnglet] = useState("classement");
   const onglets = [
     ["classement", "Classement"],
+    ["recompenses", "🏅 Récompenses"],
     ["groupe", "Tendances du groupe"],
     ["evolution", "Évolution"],
   ];
@@ -31,6 +33,7 @@ export default function ClassementGroupe({ data, me }) {
         ))}
       </div>
       {sousOnglet === "classement" && <Classement data={data} me={me} />}
+      {sousOnglet === "recompenses" && <Badges data={data} me={me} />}
       {sousOnglet === "groupe" && <Groupe data={data} />}
       {sousOnglet === "evolution" && <Evolution data={data} />}
     </div>
