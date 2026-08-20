@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Card, Button, Badge, Field, inputStyle, COLORS, CandidatAvatar } from "../components/ui";
+import { Card, Button, Badge, Field, inputStyle, COLORS, CandidatAvatar, Modal } from "../components/ui";
 import { fmtDateTime } from "../lib/format";
 import { ligueMembers } from "../lib/scoring";
 import { PHASES } from "../lib/phases";
@@ -250,6 +250,7 @@ function AdminCandidats({ data }) {
 
 function AdminSessions({ data }) {
   const [editingSession, setEditingSession] = useState(null);
+  const [relanceSession, setRelanceSession] = useState(null);
   const [titre, setTitre] = useState("");
   const [phase, setPhase] = useState(1);
   const defaultCloture = () => {
@@ -321,6 +322,7 @@ function AdminSessions({ data }) {
                 {editingSession === s.id ? "Fermer l'éditeur" : "Gérer les questions"}
               </Button>
               {s.statut === "ouverte" && <Button variant="danger" onClick={() => closeSession(s.id)}>Clôturer</Button>}
+              {s.statut === "ouverte" && <Button variant="ghost" onClick={() => setRelanceSession(s)}>Relancer</Button>}
               {s.statut !== "ouverte" && s.statut !== "close" && <Button onClick={() => openSession(s.id)}>Ouvrir maintenant</Button>}
               {questionsCount === 0 && (
                 <Button variant="danger" onClick={() => deleteSession(s.id)}>Supprimer (session vide)</Button>
@@ -330,7 +332,64 @@ function AdminSessions({ data }) {
           </Card>
         );
       })}
+      {relanceSession && <RelanceModal session={relanceSession} onClose={() => setRelanceSession(null)} />}
     </div>
+  );
+}
+
+function RelanceModal({ session, onClose }) {
+  const [copie, setCopie] = useState(false);
+  const lien = window.location.origin;
+  const joursRestants = Math.ceil((new Date(session.cloture) - new Date()) / (1000 * 60 * 60 * 24));
+  const delaiTexte =
+    joursRestants <= 0 ? "ça ferme aujourd'hui !" : joursRestants === 1 ? "plus qu'1 jour pour voter !" : `plus que ${joursRestants} jours pour voter !`;
+  const message = `⏰ « ${session.titre} » : ${delaiTexte} Faites vos pronostics avant la clôture. → ${lien}`;
+
+  const copierLien = async () => {
+    try {
+      await navigator.clipboard.writeText(lien);
+      setCopie(true);
+      setTimeout(() => setCopie(false), 2000);
+    } catch {
+      setCopie(false);
+    }
+  };
+
+  const partageNatifDisponible = typeof navigator !== "undefined" && !!navigator.share;
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 18, fontWeight: 600 }}>Relancer les joueurs</h3>
+        <button onClick={onClose} className="text-xl leading-none" style={{ color: COLORS.paperDim }}>×</button>
+      </div>
+      <p className="text-xs mb-1" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Message qui sera partagé</p>
+      <div className="rounded-xl p-3 mb-4 text-sm" style={{ background: COLORS.ink900, border: `1px solid ${COLORS.ink600}`, color: COLORS.paper }}>
+        {message}
+      </div>
+      <div className="flex flex-col gap-2">
+        <Button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer")} className="w-full">
+          Partager sur WhatsApp
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            (window.location.href = `mailto:?subject=${encodeURIComponent(`Rappel : ${session.titre}`)}&body=${encodeURIComponent(message)}`)
+          }
+          className="w-full"
+        >
+          Envoyer par email
+        </Button>
+        <Button variant="ghost" onClick={copierLien} className="w-full">
+          {copie ? "✓ Lien copié" : "Copier le lien du site"}
+        </Button>
+        {partageNatifDisponible && (
+          <Button variant="ghost" onClick={() => navigator.share({ title: session.titre, text: message }).catch(() => {})} className="w-full">
+            Autre application…
+          </Button>
+        )}
+      </div>
+    </Modal>
   );
 }
 
