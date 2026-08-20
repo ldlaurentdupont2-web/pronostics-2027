@@ -23,32 +23,6 @@ export default function Classement({ data, me }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {echeances.length > 0 && (
-        <Card>
-          <p className="text-xs mb-3" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Calendrier des points</p>
-          <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${COLORS.ink600}` }}>
-                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Échéance</th>
-                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Quand</th>
-                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Points / bonus en jeu</th>
-                </tr>
-              </thead>
-              <tbody style={{ color: COLORS.paperDim }}>
-                {echeances.map((e) => (
-                  <tr key={e.id} style={{ borderBottom: `1px solid ${COLORS.ink700}` }}>
-                    <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>{e.libelle}</td>
-                    <td className="py-2 px-1 align-top whitespace-nowrap" style={{ color: COLORS.gold }}>{e.quand}</td>
-                    <td className="py-2 px-1 align-top">{e.points || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
       {mesLigueIds.length === 0 ? (
         <Card>
           <p className="text-sm" style={{ color: COLORS.paperDim }}>
@@ -124,6 +98,33 @@ export default function Classement({ data, me }) {
           {ligueId && <CommentairesLigue data={data} me={me} ligueId={ligueId} />}
         </>
       )}
+
+      {echeances.length > 0 && (
+        <Card>
+          <p className="text-xs mb-3" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Calendrier des points</p>
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${COLORS.ink600}` }}>
+                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Échéance</th>
+                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Quand</th>
+                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Points / bonus en jeu</th>
+                </tr>
+              </thead>
+              <tbody style={{ color: COLORS.paperDim }}>
+                {echeances.map((e) => (
+                  <tr key={e.id} style={{ borderBottom: `1px solid ${COLORS.ink700}` }}>
+                    <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>{e.libelle}</td>
+                    <td className="py-2 px-1 align-top whitespace-nowrap" style={{ color: COLORS.gold }}>{e.quand}</td>
+                    <td className="py-2 px-1 align-top">{e.points || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
       {inviteOpen && ligueId && (
         <InviteModal ligue={data.ligues.find((l) => l.id === ligueId)} onClose={() => setInviteOpen(false)} />
       )}
