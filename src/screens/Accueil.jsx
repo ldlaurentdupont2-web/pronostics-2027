@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Card, Badge, Button, Field, inputStyle, COLORS, HeaderPortrait } from "../components/ui";
+import InviteModal from "../components/InviteModal";
 import { fmtDateTime } from "../lib/format";
 import { ligueMembers } from "../lib/scoring";
 import { joinLigueByCode, addLigue } from "../lib/db";
@@ -19,6 +20,10 @@ export default function Accueil({ data, me, setTab }) {
   const [creerErr, setCreerErr] = useState("");
   const [creerBusy, setCreerBusy] = useState(false);
   const [dernierCode, setDernierCode] = useState(null);
+
+  // Ligue actuellement ciblée par la modale d'invitation (null = fermée). On stocke la
+  // ligue elle-même plutôt qu'un simple id, InviteModal attend un objet { nom, code }.
+  const [ligueAInviter, setLigueAInviter] = useState(null);
 
   const join = async () => {
     if (!code.trim()) return;
@@ -125,9 +130,18 @@ export default function Accueil({ data, me, setTab }) {
                   <p className="text-xs mb-0.5" style={{ color: COLORS.paperDim }}>
                     {membres.length === 0 ? "Aucun membre pour l'instant." : membres.map((m) => m.nom).join(", ")}
                   </p>
-                  <p className="text-xs" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
-                    Code d'invitation : <span style={{ color: COLORS.gold, fontWeight: 600 }}>{l.code}</span>
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
+                      Code d'invitation : <span style={{ color: COLORS.gold, fontWeight: 600 }}>{l.code}</span>
+                    </p>
+                    <button
+                      onClick={() => setLigueAInviter(l)}
+                      className="text-xs shrink-0"
+                      style={{ color: COLORS.gold, fontWeight: 600 }}
+                    >
+                      Inviter
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -184,6 +198,10 @@ export default function Accueil({ data, me, setTab }) {
           </p>
         )}
       </Card>
+
+      {ligueAInviter && (
+        <InviteModal ligue={ligueAInviter} onClose={() => setLigueAInviter(null)} />
+      )}
     </div>
   );
 }
