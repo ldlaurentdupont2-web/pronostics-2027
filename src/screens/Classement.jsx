@@ -103,25 +103,29 @@ export default function Classement({ data, me }) {
       {echeances.length > 0 && (
         <Card>
           <p className="text-xs mb-3" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>Calendrier des points</p>
-          <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${COLORS.ink600}` }}>
-                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Échéance</th>
-                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Quand</th>
-                  <th className="text-left py-2 px-1" style={{ color: COLORS.gold, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>Points / bonus en jeu</th>
-                </tr>
-              </thead>
-              <tbody style={{ color: COLORS.paperDim }}>
-                {echeances.map((e) => (
-                  <tr key={e.id} style={{ borderBottom: `1px solid ${COLORS.ink700}` }}>
-                    <td className="py-2 px-1 align-top" style={{ color: COLORS.paper }}>{e.libelle}</td>
-                    <td className="py-2 px-1 align-top whitespace-nowrap" style={{ color: COLORS.gold }}>{e.quand}</td>
-                    <td className="py-2 px-1 align-top">{e.points || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-2">
+            {echeances.map((e) => (
+              <div
+                key={e.id}
+                className="rounded-xl px-3 py-2.5"
+                style={{ background: COLORS.ink900, border: `1px solid ${COLORS.ink700}` }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <span className="text-sm font-semibold" style={{ color: COLORS.paper }}>{e.libelle}</span>
+                  <span
+                    className="text-xs shrink-0 px-2 py-0.5 rounded-full whitespace-nowrap"
+                    style={{ color: COLORS.gold, background: COLORS.ink800, fontFamily: "'IBM Plex Mono', monospace" }}
+                  >
+                    {e.quand}
+                  </span>
+                </div>
+                {e.points && (
+                  <p className="text-xs" style={{ color: COLORS.paperDim, lineHeight: 1.4 }}>
+                    {e.points}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         </Card>
       )}
