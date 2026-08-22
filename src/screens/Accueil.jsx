@@ -115,6 +115,15 @@ export default function Accueil({ data, me, setTab }) {
 
       <Card>
         <h3 className="text-sm font-semibold mb-2" style={{ color: COLORS.paper }}>Mes ligues</h3>
+        <div
+          className="flex items-start gap-2 rounded-xl px-3 py-2 mb-3"
+          style={{ background: COLORS.ink900, border: `1px solid ${COLORS.ink600}` }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1.4 }}>🔗</span>
+          <p className="text-xs" style={{ color: COLORS.paperDim, lineHeight: 1.4 }}>
+            Vos pronostics sont communs à toutes vos ligues — répondez une seule fois, ça compte partout, inutile de recommencer en changeant de ligue.
+          </p>
+        </div>
         {mesLigues.length === 0 ? (
           <p className="text-sm" style={{ color: COLORS.paperDim }}>Vous n'appartenez à aucune ligue pour l'instant.</p>
         ) : (
