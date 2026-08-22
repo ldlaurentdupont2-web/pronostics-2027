@@ -127,7 +127,7 @@ export default function Accueil({ data, me, setTab }) {
                     <Badge tone="verified">{l.nom}</Badge>
                     <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} inscrit{membres.length > 1 ? "s" : ""}</span>
                   </div>
-                  <p className="text-xs mb-0.5" style={{ color: COLORS.paperDim }}>
+                  <p className="text-xs mb-2" style={{ color: COLORS.paperDim }}>
                     {membres.length === 0 ? "Aucun membre pour l'instant." : membres.map((m) => m.nom).join(", ")}
                   </p>
                   <div className="flex items-center justify-between gap-2">
@@ -136,10 +136,10 @@ export default function Accueil({ data, me, setTab }) {
                     </p>
                     <button
                       onClick={() => setLigueAInviter(l)}
-                      className="text-xs shrink-0"
-                      style={{ color: COLORS.gold, fontWeight: 600 }}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0"
+                      style={{ background: COLORS.gold, color: COLORS.ink800 }}
                     >
-                      Inviter
+                      <span aria-hidden="true">➕</span> Inviter
                     </button>
                   </div>
                 </div>
