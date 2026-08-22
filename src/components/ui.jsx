@@ -13,8 +13,8 @@ export const COLORS = {
   ink800: "#FFFFFF", // fond des cartes
   ink700: "#E7E2D4", // bordure discrète
   ink600: "#D6CFBC", // bordure plus marquée / éléments non sélectionnés
-  gold: "#A6791C", // accent principal (assez sombre pour rester lisible sur fond clair)
-  goldSoft: "#8C6516", // variante secondaire de l'or, un peu plus sourde
+  gold: "#355E3B", // accent principal — vert bouteille feutré (remplace l'ancien doré)
+  goldSoft: "#2A4A32", // variante secondaire, plus sombre, pour le texte sur fond clair
   verified: "#2F7A64",
   danger: "#B23B33",
   muted: "#6B7280",
