@@ -16,6 +16,45 @@ function resumeReponse(q, r) {
     : r;
 }
 
+// Cherche la réponse donnée par le joueur à une question IDENTIQUE (même libellé, même
+// type) dans la session close la plus récente qui précède celle-ci. Sert uniquement à
+// pré-remplir le formulaire : rien n'est enregistré tant que le joueur n'a pas validé.
+// Le lien entre deux mois se fait par le libellé : s'il change, la reprise ne se fait plus.
+function reponsePrecedente(q, data, me, session) {
+  if (!q.libelle) return null;
+  const sessionsAvant = data.sessions
+    .filter((s) => s.id !== session.id && new Date(s.cloture) < new Date(session.cloture))
+    .sort((a, b) => new Date(b.cloture) - new Date(a.cloture));
+  for (const s of sessionsAvant) {
+    const qPrec = data.questions.find((x) => x.sessionId === s.id && x.libelle === q.libelle && x.type === q.type);
+    if (!qPrec) continue;
+    const p = data.pronostics.find((x) => x.participantId === me.id && x.questionId === qPrec.id);
+    if (p && p.reponse !== null && p.reponse !== undefined && p.reponse !== "") return { pronostic: p, session: s };
+  }
+  return null;
+}
+
+// Une option proposée le mois dernier peut avoir disparu ce mois-ci : on ne reprend que
+// ce qui existe encore dans la question actuelle, sinon on laisse le champ vide.
+function reponseCompatible(q, reponse, options) {
+  if (reponse === null || reponse === undefined) return null;
+  if (q.type === "choix_multiple") {
+    if (!Array.isArray(reponse)) return null;
+    const garde = reponse.filter((v) => options.includes(v));
+    return garde.length ? garde : null;
+  }
+  if (q.type === "choix_unique" || q.type === "oui_non") {
+    return options.includes(reponse) ? reponse : null;
+  }
+  if (q.type === "numerique") {
+    return typeof reponse === "number" ? reponse : null;
+  }
+  if (q.type === "texte" || q.type === "texte_pari") {
+    return typeof reponse === "string" ? reponse : null;
+  }
+  return null;
+}
+
 export default function Pronostiquer({ data, me }) {
   const session = data.sessions.find((s) => s.statut === "ouverte");
   if (!session) return <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Aucune session ouverte.</p></Card>;
@@ -30,17 +69,37 @@ export default function Pronostiquer({ data, me }) {
     .map((q) => ({ q, p: data.pronostics.find((x) => x.participantId === me.id && x.questionId === q.id) }))
     .filter(({ q, p }) => q.type !== "texte" && resumeReponse(q, p?.reponse) !== null);
 
+  // Questions pré-remplies avec la réponse du mois dernier mais pas encore validées :
+  // on le signale en haut, sinon le joueur peut croire qu'il a déjà tout répondu.
+  const nbReprises = questions.filter(
+    (q) =>
+      !data.pronostics.find((x) => x.participantId === me.id && x.questionId === q.id) &&
+      reponsePrecedente(q, data, me, session)
+  ).length;
+
   return (
     <div className="flex flex-col gap-3">
       <div className="mb-1">
         <h2 style={{ fontFamily: "'Fraunces', serif", color: COLORS.paper, fontSize: 20, fontWeight: 600 }}>{session.titre}</h2>
         <p className="text-xs" style={{ color: COLORS.paperDim }}>Clôture le {fmtDateTime(session.cloture)} — réponses définitives après clôture</p>
       </div>
+
+      {nbReprises > 0 && (
+        <Card>
+          <p className="text-sm" style={{ color: COLORS.gold }}>
+            {nbReprises} question{nbReprises > 1 ? "s sont pré-remplies" : " est pré-remplie"} avec votre réponse du mois dernier.
+          </p>
+          <p className="text-xs mt-1" style={{ color: COLORS.paperDim }}>
+            Rien n'est enregistré tant que vous n'avez pas cliqué sur « Confirmer et valider ». Modifiez ce que vous voulez avant de valider.
+          </p>
+        </Card>
+      )}
+
       {questions.map((q, i) =>
         q.type === "candidat_score" ? (
-          <CandidatScoreCard key={q.id} q={q} index={i + 1} data={data} me={me} onSave={save} />
+          <CandidatScoreCard key={q.id} q={q} index={i + 1} data={data} me={me} session={session} onSave={save} />
         ) : (
-          <QuestionCard key={q.id} q={q} index={i + 1} data={data} me={me} onSave={save} />
+          <QuestionCard key={q.id} q={q} index={i + 1} data={data} me={me} session={session} onSave={save} />
         )
       )}
 
@@ -64,18 +123,23 @@ export default function Pronostiquer({ data, me }) {
   );
 }
 
-function QuestionCard({ q, index, data, me, onSave }) {
+function QuestionCard({ q, index, data, me, session, onSave }) {
   const isMulti = q.type === "choix_multiple";
   const isChoice = q.type === "choix_unique" || isMulti;
   const existing = data.pronostics.find((p) => p.participantId === me.id && p.questionId === q.id);
-  const [reponse, setReponse] = useState(existing?.reponse ?? (isMulti ? [] : ""));
-  const [prob, setProb] = useState(existing?.probabilite ?? 50);
 
   const candidatOptions =
     isChoice && q.optionsCandidatIds && q.optionsCandidatIds.length
       ? q.optionsCandidatIds.map((cid) => data.candidats.find((c) => c.id === cid)).filter(Boolean)
       : null;
   const options = isChoice ? (candidatOptions ? candidatOptions.map((c) => c.nom) : q.optionsLibres || []) : q.type === "oui_non" ? ["Oui", "Non"] : [];
+
+  // Reprise du mois dernier, seulement si le joueur n'a pas déjà répondu ce mois-ci.
+  const precedent = existing ? null : reponsePrecedente(q, data, me, session);
+  const reprise = precedent ? reponseCompatible(q, precedent.pronostic.reponse, options) : null;
+
+  const [reponse, setReponse] = useState(reprise ?? existing?.reponse ?? (isMulti ? [] : ""));
+  const [prob, setProb] = useState(existing?.probabilite ?? precedent?.pronostic.probabilite ?? 50);
 
   const isSelected = (val) => (isMulti ? reponse.includes(val) : reponse === val);
 
@@ -227,16 +291,29 @@ function QuestionCard({ q, index, data, me, onSave }) {
 
       {existing && !dirty && <div className="mt-2 text-xs" style={{ color: COLORS.verified }}>✓ enregistré le {fmtDateTime(existing.date)}</div>}
       {dirty && existing && <div className="mt-2 text-xs" style={{ color: COLORS.gold }}>Réponse modifiée, non enregistrée — cliquez sur "Confirmer et valider".</div>}
+      {!existing && reprise !== null && (
+        <div className="mt-2 text-xs" style={{ color: COLORS.gold }}>
+          Repris de « {precedent.session.titre} » — non enregistré tant que vous n'avez pas validé.
+        </div>
+      )}
     </Card>
   );
 }
 
-function CandidatScoreCard({ q, index, data, me, onSave }) {
+function CandidatScoreCard({ q, index, data, me, session, onSave }) {
   const existing = data.pronostics.find((p) => p.participantId === me.id && p.questionId === q.id);
-  const [candidatChoice, setCandidatChoice] = useState(existing?.reponse?.candidat ?? "");
-  const [scoreValue, setScoreValue] = useState(existing?.reponse?.score ?? "");
 
   const candidatOptions = (q.optionsCandidatIds || []).map((cid) => data.candidats.find((c) => c.id === cid)).filter(Boolean);
+
+  // Reprise du mois dernier : uniquement si le candidat choisi figure encore dans la liste.
+  const precedent = existing ? null : reponsePrecedente(q, data, me, session);
+  const repriseObj =
+    precedent && precedent.pronostic.reponse && typeof precedent.pronostic.reponse === "object" && candidatOptions.some((c) => c.nom === precedent.pronostic.reponse.candidat)
+      ? precedent.pronostic.reponse
+      : null;
+
+  const [candidatChoice, setCandidatChoice] = useState(repriseObj?.candidat ?? existing?.reponse?.candidat ?? "");
+  const [scoreValue, setScoreValue] = useState(repriseObj?.score ?? existing?.reponse?.score ?? "");
 
   const dirty = candidatChoice !== (existing?.reponse?.candidat ?? "") || String(scoreValue) !== String(existing?.reponse?.score ?? "");
   const canValidate = candidatChoice && scoreValue !== "" && !isNaN(Number(scoreValue));
@@ -304,6 +381,11 @@ function CandidatScoreCard({ q, index, data, me, onSave }) {
 
       {existing && !dirty && <div className="mt-2 text-xs" style={{ color: COLORS.verified }}>✓ enregistré le {fmtDateTime(existing.date)}</div>}
       {dirty && existing && <div className="mt-2 text-xs" style={{ color: COLORS.gold }}>Réponse modifiée, non enregistrée.</div>}
+      {!existing && repriseObj && (
+        <div className="mt-2 text-xs" style={{ color: COLORS.gold }}>
+          Repris de « {precedent.session.titre} » — non enregistré tant que vous n'avez pas validé.
+        </div>
+      )}
     </Card>
   );
 }
