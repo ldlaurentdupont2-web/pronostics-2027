@@ -16,6 +16,7 @@ import {
   openSession,
   deleteSession,
   addQuestion,
+  updateQuestion,
   bulkAddQuestions,
   removeQuestion,
   reorderQuestions,
@@ -406,6 +407,7 @@ function QuestionEditor({ session, data }) {
   const [numeriqueEntier, setNumeriqueEntier] = useState(false);
   const [numeriqueExact, setNumeriqueExact] = useState(false);
   const [resultatAttendu, setResultatAttendu] = useState("");
+  const [editQ, setEditQ] = useState(null); // question en cours de modification, ou null en création
   const formRef = useRef(null);
 
   const qs = data.questions.filter((q) => q.sessionId === session.id).sort((a, b) => a.ordre - b.ordre);
@@ -532,30 +534,64 @@ function QuestionEditor({ session, data }) {
     };
   });
 
-  const add = async () => {
-    if (!libelle.trim()) return;
-    await addQuestion({
-      sessionId: session.id,
-      libelle: libelle.trim(),
-      type,
-      points: Number(points),
-      pointsScore: type === "candidat_score" ? Number(pointsScore) : undefined,
-      penalite: type === "choix_unique" || type === "oui_non" || type === "texte_pari" ? Number(penalite) || 0 : undefined,
-      ordre: qs.length,
-      optionsLibres: (type === "choix_unique" || type === "choix_multiple") && sourceOptions === "texte" ? optionsLibres.split(",").map((o) => o.trim()).filter(Boolean) : [],
-      optionsCandidatIds: ((type === "choix_unique" || type === "choix_multiple") && sourceOptions === "candidats") || type === "candidat_score" ? selectedCandidatIds : [],
-      avecProbabilite: false,
-      numeriqueEntier: type === "numerique" ? numeriqueEntier : false,
-      numeriqueExact: type === "numerique" ? numeriqueExact : false,
-      resultatAttendu: resultatAttendu.trim(),
-    });
+  const resetForm = () => {
+    setEditQ(null);
     setLibelle("");
     setResultatAttendu("");
     setOptionsLibres("");
     setSelectedCandidatIds([]);
     setNumeriqueEntier(false);
     setNumeriqueExact(false);
+    setAppliedIndex(null);
   };
+
+  // Charge une question existante dans le formulaire ci-dessous, qui bascule alors en
+  // mode modification (voir submit).
+  const startEdit = (q) => {
+    setEditQ(q);
+    setLibelle(q.libelle);
+    setType(q.type);
+    setSourceOptions((q.optionsCandidatIds || []).length > 0 ? "candidats" : "texte");
+    setOptionsLibres((q.optionsLibres || []).join(", "));
+    setSelectedCandidatIds(q.optionsCandidatIds || []);
+    setPoints(q.points);
+    setPointsScore(q.pointsScore ?? 1);
+    setPenalite(q.penalite ?? 0);
+    setNumeriqueEntier(!!q.numeriqueEntier);
+    setNumeriqueExact(!!q.numeriqueExact);
+    setResultatAttendu(q.resultatAttendu || "");
+    setAppliedIndex(null);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const submit = async () => {
+    if (!libelle.trim()) return;
+    const payload = {
+      sessionId: session.id,
+      libelle: libelle.trim(),
+      type,
+      points: Number(points),
+      pointsScore: type === "candidat_score" ? Number(pointsScore) : undefined,
+      penalite: type === "choix_unique" || type === "oui_non" || type === "texte_pari" ? Number(penalite) || 0 : undefined,
+      // En modification, on conserve la place dans la liste et le marqueur "bonus famille"
+      // d'origine : le formulaire ne les expose pas, ils seraient sinon écrasés.
+      ordre: editQ ? editQ.ordre : qs.length,
+      bonusFamilleExacte: editQ ? !!editQ.bonusFamilleExacte : false,
+      optionsLibres: (type === "choix_unique" || type === "choix_multiple") && sourceOptions === "texte" ? optionsLibres.split(",").map((o) => o.trim()).filter(Boolean) : [],
+      optionsCandidatIds: ((type === "choix_unique" || type === "choix_multiple") && sourceOptions === "candidats") || type === "candidat_score" ? selectedCandidatIds : [],
+      avecProbabilite: false,
+      numeriqueEntier: type === "numerique" ? numeriqueEntier : false,
+      numeriqueExact: type === "numerique" ? numeriqueExact : false,
+      resultatAttendu: resultatAttendu.trim(),
+    };
+    if (editQ) await updateQuestion(editQ.id, payload);
+    else await addQuestion(payload);
+    resetForm();
+  };
+
+  // Nombre de joueurs ayant déjà répondu à la question en cours de modification : sert à
+  // avertir avant de toucher aux options ou au type.
+  const nbReponses = editQ ? data.pronostics.filter((p) => p.questionId === editQ.id).length : 0;
 
   const moveQuestionToPosition = async (qid, newIndex) => {
     const current = [...qs];
@@ -597,6 +633,9 @@ function QuestionEditor({ session, data }) {
             <span className="flex-1">
               {q.libelle} <span style={{ color: COLORS.gold }}>· {q.points} pts</span>
             </span>
+            <button onClick={() => startEdit(q)} className="shrink-0" style={{ color: editQ?.id === q.id ? COLORS.paper : COLORS.gold }}>
+              {editQ?.id === q.id ? "en cours ↓" : "modifier"}
+            </button>
             <button onClick={() => removeQuestion(q.id)} className="shrink-0" style={{ color: COLORS.danger }}>supprimer</button>
           </div>
         ))}
@@ -753,7 +792,21 @@ function QuestionEditor({ session, data }) {
         </>
       )}
       {!libelle.trim() && <p className="text-xs mb-2" style={{ color: COLORS.paperDim }}>Saisissez d'abord un intitulé.</p>}
-      <Button onClick={add} disabled={!libelle.trim()}>Ajouter la question</Button>
+      {editQ && nbReponses > 0 && (
+        <p className="text-xs mb-2" style={{ color: COLORS.danger }}>
+          {nbReponses} joueur{nbReponses > 1 ? "s ont" : " a"} déjà répondu. Changer le type ou les options rendrait {nbReponses > 1 ? "leurs réponses" : "sa réponse"} incohérente{nbReponses > 1 ? "s" : ""} : corrigez de préférence l'intitulé, les points ou la date de résultat.
+        </p>
+      )}
+      <div className="flex items-center gap-2">
+        <Button onClick={submit} disabled={!libelle.trim()}>
+          {editQ ? "Enregistrer les modifications" : "Ajouter la question"}
+        </Button>
+        {editQ && (
+          <Button variant="ghost" onClick={resetForm}>
+            Annuler
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

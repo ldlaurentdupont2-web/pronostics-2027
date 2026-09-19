@@ -328,6 +328,13 @@ export async function addQuestion(q) {
   if (error) throw error;
 }
 
+// Modification d'une question existante. Attention : l'appelant doit conserver l'ordre
+// et le marqueur bonusFamilleExacte d'origine, sinon questionToRow les écrase.
+export async function updateQuestion(id, q) {
+  const { error } = await supabase.from("questions").update(questionToRow(q)).eq("id", id);
+  if (error) throw error;
+}
+
 export async function bulkAddQuestions(rows) {
   if (rows.length === 0) return;
   const { error } = await supabase.from("questions").insert(rows.map(questionToRow));
