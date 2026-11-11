@@ -182,6 +182,16 @@ export async function addLigue(nom) {
   return { id: data.id, nom: data.nom, code: data.code };
 }
 
+// Réservé à l'admin (policy "admin update ligues") : renomme une ligue.
+// Le code d'invitation n'est pas touché — les liens déjà envoyés restent valides.
+export async function updateLigueNom(id, nom) {
+  const { error } = await supabase.from("ligues").update({ nom: nom.trim() }).eq("id", id);
+  if (error) {
+    if (error.code === "23505") throw new Error("Ce nom de ligue existe déjà — choisissez-en un autre.");
+    throw error;
+  }
+}
+
 export async function leaveLigue(participantId, ligueId) {
   const { error } = await supabase.from("adhesions").delete().eq("participant_id", participantId).eq("ligue_id", ligueId);
   if (error) throw error;

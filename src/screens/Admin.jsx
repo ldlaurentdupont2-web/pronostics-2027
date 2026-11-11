@@ -26,6 +26,7 @@ import {
   deleteEcheance,
   fetchParticipantsWithEmail,
   leaveLigue,
+  updateLigueNom,
 } from "../lib/db";
 
 export default function Admin({ data }) {
@@ -74,6 +75,10 @@ function AdminLigues({ data }) {
   const [nom, setNom] = useState("");
   const [err, setErr] = useState("");
   const [lastCreated, setLastCreated] = useState(null);
+  const [editId, setEditId] = useState(null); // ligue en cours de renommage, ou null
+  const [editNom, setEditNom] = useState("");
+  const [editErr, setEditErr] = useState("");
+
   const add = async () => {
     if (!nom.trim()) {
       setErr("Entrez un nom de ligue avant de créer.");
@@ -86,6 +91,32 @@ function AdminLigues({ data }) {
       setNom("");
     } catch (e) {
       setErr("La sauvegarde a échoué : " + (e?.message || "erreur inconnue"));
+    }
+  };
+
+  const startRename = (l) => {
+    setEditId(l.id);
+    setEditNom(l.nom);
+    setEditErr("");
+  };
+
+  const cancelRename = () => {
+    setEditId(null);
+    setEditNom("");
+    setEditErr("");
+  };
+
+  const saveRename = async () => {
+    if (!editNom.trim()) {
+      setEditErr("Le nom ne peut pas être vide.");
+      return;
+    }
+    try {
+      await updateLigueNom(editId, editNom);
+      cancelRename();
+    } catch (e) {
+      // Cas courant : une autre ligue porte déjà ce nom (contrainte d'unicité en base).
+      setEditErr(e?.message || "Échec de l'enregistrement.");
     }
   };
   return (
@@ -121,10 +152,39 @@ function AdminLigues({ data }) {
         const membres = ligueMembers(l.id, data);
         return (
           <Card key={l.id}>
-            <div className="flex items-center justify-between mb-1">
-              <span style={{ color: COLORS.paper }} className="font-medium">{l.nom}</span>
-              <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} membre(s)</span>
-            </div>
+            {editId === l.id ? (
+              <div className="mb-2">
+                <input
+                  style={inputStyle}
+                  value={editNom}
+                  autoFocus
+                  onChange={(e) => {
+                    setEditNom(e.target.value);
+                    setEditErr("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveRename();
+                    if (e.key === "Escape") cancelRename();
+                  }}
+                />
+                <p className="text-xs mb-2" style={{ color: COLORS.paperDim }}>
+                  Le code d'invitation ne change pas : les liens déjà envoyés restent valables.
+                </p>
+                {editErr && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{editErr}</p>}
+                <div className="flex gap-2">
+                  <Button onClick={saveRename} disabled={!editNom.trim()}>Enregistrer</Button>
+                  <Button variant="ghost" onClick={cancelRename}>Annuler</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span style={{ color: COLORS.paper }} className="font-medium">{l.nom}</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button onClick={() => startRename(l)} className="text-xs" style={{ color: COLORS.gold }}>renommer</button>
+                  <span className="text-xs" style={{ color: COLORS.paperDim }}>{membres.length} membre(s)</span>
+                </div>
+              </div>
+            )}
             <p className="text-xs mb-1.5" style={{ color: COLORS.paperDim, fontFamily: "'IBM Plex Mono', monospace" }}>
               Code : <span style={{ color: COLORS.gold, fontWeight: 600 }}>{l.code}</span>
             </p>
