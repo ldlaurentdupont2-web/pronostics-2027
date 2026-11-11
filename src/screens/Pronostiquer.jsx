@@ -16,16 +16,27 @@ function resumeReponse(q, r) {
     : r;
 }
 
-// Cherche la réponse donnée par le joueur à une question IDENTIQUE (même libellé, même
-// type) dans la session close la plus récente qui précède celle-ci. Sert uniquement à
-// pré-remplir le formulaire : rien n'est enregistré tant que le joueur n'a pas validé.
-// Le lien entre deux mois se fait par le libellé : s'il change, la reprise ne se fait plus.
+// La session jouable est celle dont la clôture est la plus proche parmi celles qui
+// ne sont pas encore closes : le calendrier avance donc tout seul, sans qu'un admin
+// ait à ouvrir ou fermer quoi que ce soit. Même règle que la policy "question_ouverte"
+// côté base — les deux doivent rester d'accord, sinon le formulaire s'afficherait
+// alors que l'enregistrement échouerait.
+export function sessionCourante(sessions) {
+  return [...sessions]
+    .filter((s) => s.statut !== "close" && new Date(s.cloture) > new Date())
+    .sort((a, b) => new Date(a.cloture) - new Date(b.cloture))[0];
+}
+
+// Cherche la réponse donnée par le joueur à une question IDENTIQUE (même libellé,
+// même type) dans la session précédente la plus récente. Sert uniquement à pré-remplir
+// le formulaire : rien n'est enregistré tant que le joueur n'a pas validé. Le lien
+// entre deux tours se fait par le libellé : s'il change, la reprise ne se fait plus.
 function reponsePrecedente(q, data, me, session) {
   if (!q.libelle) return null;
-  const sessionsAvant = data.sessions
+  const avant = data.sessions
     .filter((s) => s.id !== session.id && new Date(s.cloture) < new Date(session.cloture))
     .sort((a, b) => new Date(b.cloture) - new Date(a.cloture));
-  for (const s of sessionsAvant) {
+  for (const s of avant) {
     const qPrec = data.questions.find((x) => x.sessionId === s.id && x.libelle === q.libelle && x.type === q.type);
     if (!qPrec) continue;
     const p = data.pronostics.find((x) => x.participantId === me.id && x.questionId === qPrec.id);
@@ -34,8 +45,8 @@ function reponsePrecedente(q, data, me, session) {
   return null;
 }
 
-// Une option proposée le mois dernier peut avoir disparu ce mois-ci : on ne reprend que
-// ce qui existe encore dans la question actuelle, sinon on laisse le champ vide.
+// Une option proposée au tour précédent peut avoir disparu : on ne reprend que ce qui
+// existe encore dans la question actuelle, sinon on laisse le champ vide.
 function reponseCompatible(q, reponse, options) {
   if (reponse === null || reponse === undefined) return null;
   if (q.type === "choix_multiple") {
@@ -43,21 +54,15 @@ function reponseCompatible(q, reponse, options) {
     const garde = reponse.filter((v) => options.includes(v));
     return garde.length ? garde : null;
   }
-  if (q.type === "choix_unique" || q.type === "oui_non") {
-    return options.includes(reponse) ? reponse : null;
-  }
-  if (q.type === "numerique") {
-    return typeof reponse === "number" ? reponse : null;
-  }
-  if (q.type === "texte" || q.type === "texte_pari") {
-    return typeof reponse === "string" ? reponse : null;
-  }
+  if (q.type === "choix_unique" || q.type === "oui_non") return options.includes(reponse) ? reponse : null;
+  if (q.type === "numerique") return typeof reponse === "number" ? reponse : null;
+  if (q.type === "texte" || q.type === "texte_pari") return typeof reponse === "string" ? reponse : null;
   return null;
 }
 
 export default function Pronostiquer({ data, me }) {
-  const session = data.sessions.find((s) => s.statut === "ouverte");
-  if (!session) return <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Aucune session ouverte.</p></Card>;
+  const session = sessionCourante(data.sessions);
+  if (!session) return <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Aucun tour de pronostics en cours.</p></Card>;
 
   const questions = data.questions.filter((q) => q.sessionId === session.id).sort((a, b) => a.ordre - b.ordre);
 
@@ -69,8 +74,8 @@ export default function Pronostiquer({ data, me }) {
     .map((q) => ({ q, p: data.pronostics.find((x) => x.participantId === me.id && x.questionId === q.id) }))
     .filter(({ q, p }) => q.type !== "texte" && resumeReponse(q, p?.reponse) !== null);
 
-  // Questions pré-remplies avec la réponse du mois dernier mais pas encore validées :
-  // on le signale en haut, sinon le joueur peut croire qu'il a déjà tout répondu.
+  // Questions pré-remplies à partir du tour précédent mais pas encore validées : on le
+  // signale en haut, sinon le joueur peut croire qu'il a déjà tout répondu.
   const nbReprises = questions.filter(
     (q) =>
       !data.pronostics.find((x) => x.participantId === me.id && x.questionId === q.id) &&
@@ -84,10 +89,18 @@ export default function Pronostiquer({ data, me }) {
         <p className="text-xs" style={{ color: COLORS.paperDim }}>Clôture le {fmtDateTime(session.cloture)} — réponses définitives après clôture</p>
       </div>
 
+      {questions.length === 0 && (
+        <Card>
+          <p className="text-sm" style={{ color: COLORS.paperDim }}>
+            Les questions de ce tour ne sont pas encore en ligne. Revenez d'ici quelques jours.
+          </p>
+        </Card>
+      )}
+
       {nbReprises > 0 && (
         <Card>
           <p className="text-sm" style={{ color: COLORS.gold }}>
-            {nbReprises} question{nbReprises > 1 ? "s sont pré-remplies" : " est pré-remplie"} avec votre réponse du mois dernier.
+            {nbReprises} question{nbReprises > 1 ? "s sont pré-remplies" : " est pré-remplie"} avec votre réponse du tour précédent.
           </p>
           <p className="text-xs mt-1" style={{ color: COLORS.paperDim }}>
             Rien n'est enregistré tant que vous n'avez pas cliqué sur « Confirmer et valider ». Modifiez ce que vous voulez avant de valider.
@@ -134,7 +147,7 @@ function QuestionCard({ q, index, data, me, session, onSave }) {
       : null;
   const options = isChoice ? (candidatOptions ? candidatOptions.map((c) => c.nom) : q.optionsLibres || []) : q.type === "oui_non" ? ["Oui", "Non"] : [];
 
-  // Reprise du mois dernier, seulement si le joueur n'a pas déjà répondu ce mois-ci.
+  // Reprise du tour précédent, seulement si le joueur n'a pas déjà répondu ici.
   const precedent = existing ? null : reponsePrecedente(q, data, me, session);
   const reprise = precedent ? reponseCompatible(q, precedent.pronostic.reponse, options) : null;
 
@@ -305,10 +318,11 @@ function CandidatScoreCard({ q, index, data, me, session, onSave }) {
 
   const candidatOptions = (q.optionsCandidatIds || []).map((cid) => data.candidats.find((c) => c.id === cid)).filter(Boolean);
 
-  // Reprise du mois dernier : uniquement si le candidat choisi figure encore dans la liste.
+  // Reprise du tour précédent : uniquement si le candidat choisi figure encore dans la liste.
   const precedent = existing ? null : reponsePrecedente(q, data, me, session);
   const repriseObj =
-    precedent && precedent.pronostic.reponse && typeof precedent.pronostic.reponse === "object" && candidatOptions.some((c) => c.nom === precedent.pronostic.reponse.candidat)
+    precedent && precedent.pronostic.reponse && typeof precedent.pronostic.reponse === "object" &&
+    candidatOptions.some((c) => c.nom === precedent.pronostic.reponse.candidat)
       ? precedent.pronostic.reponse
       : null;
 
