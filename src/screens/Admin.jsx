@@ -4,6 +4,10 @@ import { fmtDateTime } from "../lib/format";
 import { ligueMembers } from "../lib/scoring";
 import { PHASES } from "../lib/phases";
 import { CANDIDATOR_IMPORT } from "../lib/candidatorImport";
+// Même règle que l'écran de jeu : le tour jouable est celui dont la clôture est la plus
+// proche parmi ceux qui ne sont pas clos. On importe la fonction plutôt que de la
+// recopier, pour que les deux écrans ne puissent pas diverger.
+import { sessionCourante } from "./Pronostiquer";
 import {
   addLigue,
   addCandidat,
@@ -13,7 +17,6 @@ import {
   upsertCandidatsBulk,
   createSession,
   closeSession,
-  openSession,
   deleteSession,
   addQuestion,
   updateQuestion,
@@ -342,6 +345,27 @@ function AdminSessions({ data }) {
     }
   };
 
+  // L'état d'un tour se déduit de la date, plus du champ "statut" : « terminé » dès que
+  // la clôture est passée (ou qu'il a été clos à la main), « en cours » pour le seul tour
+  // jouable, « à venir » pour tous les suivants.
+  const courante = sessionCourante(data.sessions);
+  const etat = (s) => {
+    if (s.statut === "close" || new Date(s.cloture) <= new Date()) return "terminee";
+    return courante && s.id === courante.id ? "en_cours" : "a_venir";
+  };
+
+  // Le tour en cours d'abord, puis les suivants dans l'ordre, et les terminés en bas,
+  // du plus récent au plus ancien.
+  const rangEtat = { en_cours: 0, a_venir: 1, terminee: 2 };
+  const sessionsTriees = [...data.sessions].sort((a, b) => {
+    const ra = rangEtat[etat(a)];
+    const rb = rangEtat[etat(b)];
+    if (ra !== rb) return ra - rb;
+    const da = new Date(a.cloture);
+    const db = new Date(b.cloture);
+    return etat(a) === "terminee" ? db - da : da - db;
+  });
+
   return (
     <div className="flex flex-col gap-3">
       <Card>
@@ -363,9 +387,10 @@ function AdminSessions({ data }) {
         <Button onClick={create} disabled={!titre.trim() || !cloture}>Créer la session</Button>
       </Card>
 
-      {data.sessions.map((s) => {
-        const statutLabel = s.statut === "ouverte" ? "ouverte" : s.statut === "close" ? "close" : "planifiée";
-        const statutTone = s.statut === "ouverte" ? "gold" : s.statut === "close" ? "muted" : "verified";
+      {sessionsTriees.map((s) => {
+        const e = etat(s);
+        const statutLabel = e === "en_cours" ? "en cours" : e === "a_venir" ? "à venir" : "terminé";
+        const statutTone = e === "en_cours" ? "gold" : e === "a_venir" ? "verified" : "muted";
         const questionsCount = data.questions.filter((q) => q.sessionId === s.id).length;
         return (
           <Card key={s.id}>
@@ -374,6 +399,7 @@ function AdminSessions({ data }) {
                 <p style={{ color: COLORS.paper }} className="font-medium">{s.titre}</p>
                 <p className="text-xs" style={{ color: COLORS.paperDim }}>
                   Phase {s.phase || 1} · Clôture {fmtDateTime(s.cloture)}
+                  {e === "a_venir" && " · s'ouvrira tout seul à la clôture du tour précédent"}
                 </p>
               </div>
               <Badge tone={statutTone}>{statutLabel}</Badge>
@@ -382,9 +408,10 @@ function AdminSessions({ data }) {
               <Button variant="ghost" onClick={() => setEditingSession(editingSession === s.id ? null : s.id)}>
                 {editingSession === s.id ? "Fermer l'éditeur" : "Gérer les questions"}
               </Button>
-              {s.statut === "ouverte" && <Button variant="danger" onClick={() => closeSession(s.id)}>Clôturer</Button>}
-              {s.statut === "ouverte" && <Button variant="ghost" onClick={() => setRelanceSession(s)}>Relancer</Button>}
-              {s.statut !== "ouverte" && s.statut !== "close" && <Button onClick={() => openSession(s.id)}>Ouvrir maintenant</Button>}
+              {/* Clore le tour en cours fait passer au suivant immédiatement : c'est le seul
+                  moyen d'avancer avant la date prévue. */}
+              {e === "en_cours" && <Button variant="danger" onClick={() => closeSession(s.id)}>Clôturer maintenant</Button>}
+              {e === "en_cours" && <Button variant="ghost" onClick={() => setRelanceSession(s)}>Relancer</Button>}
               {questionsCount === 0 && (
                 <Button variant="danger" onClick={() => deleteSession(s.id)}>Supprimer (session vide)</Button>
               )}
@@ -1210,8 +1237,11 @@ function resumeReponseAdmin(q, r) {
 }
 
 function AdminSuivi({ data }) {
-  const sessionsTriees = [...data.sessions].sort((a, b) => new Date(b.ouverture) - new Date(a.ouverture));
-  const [sessionId, setSessionId] = useState(sessionsTriees.find((s) => s.statut === "ouverte")?.id || sessionsTriees[0]?.id || "");
+  const sessionsTriees = [...data.sessions].sort((a, b) => new Date(b.cloture) - new Date(a.cloture));
+  // Par défaut on suit le tour en cours. Se fier au champ "statut" choisirait ici un tour
+  // de 2027 encore vide, puisque tous les tours à venir sont marqués « ouverte » en base.
+  const courante = sessionCourante(data.sessions);
+  const [sessionId, setSessionId] = useState(courante?.id || sessionsTriees[0]?.id || "");
   const [ouvert, setOuvert] = useState({});
 
   if (sessionsTriees.length === 0) return <Card><p className="text-sm" style={{ color: COLORS.paperDim }}>Aucune session créée pour l'instant.</p></Card>;
@@ -1226,7 +1256,12 @@ function AdminSuivi({ data }) {
           <select style={inputStyle} value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
             {sessionsTriees.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.titre} {s.statut === "ouverte" ? "(ouverte)" : s.statut === "close" ? "(close)" : "(planifiée)"}
+                {s.titre}{" "}
+                {courante?.id === s.id
+                  ? "(en cours)"
+                  : s.statut === "close" || new Date(s.cloture) <= new Date()
+                  ? "(terminé)"
+                  : "(à venir)"}
               </option>
             ))}
           </select>
